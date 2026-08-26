@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str
 
     # Capashino Services
-    CAPASHINO_BASE_URL: str = "https://capashino.dev-2.python-labs.ru"
+    CAPASHINO_BASE_URL: str
     CAPASHINO_API_KEY: str = ""  # Required in production
     INTERNAL_HOSTNAME: str = "http://order-service.order-service.svc:8000"
 
