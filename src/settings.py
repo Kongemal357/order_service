@@ -1,7 +1,7 @@
 from pydantic_settings import BaseSettings
 
-class Settings(BaseSettings):
 
+class Settings(BaseSettings):
     # Service configuration
     SERVICE_NAME: str = "order-service"
     DEBUG: bool = False

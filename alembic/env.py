@@ -6,8 +6,7 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from alembic import context
-
-from src.infrastructure.persistence.models import Base, OrderModel
+from src.infrastructure.persistence.models import Base
 from src.settings import settings
 
 # this is the Alembic Config object, which provides

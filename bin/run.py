@@ -5,6 +5,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import uvicorn
+
 from src.fastapi import create_app
 from src.settings import settings
 
@@ -23,6 +24,7 @@ def run_migrations():
 
     try:
         from alembic.config import Config
+
         from alembic import command
 
         alembic_cfg = Config("alembic.ini")

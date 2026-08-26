@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import StrEnum
 from uuid import UUID, uuid4
@@ -8,6 +8,7 @@ from src.domain.exceptions import DomainError
 
 class OrderStatus(StrEnum):
     """Order status enumeration."""
+
     NEW = "NEW"
     PAID = "PAID"
     SHIPPED = "SHIPPED"
@@ -29,11 +30,11 @@ class Order:
 
     @classmethod
     def create(
-            cls,
-            user_id: str,
-            item_id: UUID,
-            quantity: int,
-            idempotency_key: str,
+        cls,
+        user_id: str,
+        item_id: UUID,
+        quantity: int,
+        idempotency_key: str,
     ) -> "Order":
         """Factory method to create a new order with NEW status."""
         now = datetime.now(timezone.utc).replace(tzinfo=None)

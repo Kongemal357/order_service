@@ -1,7 +1,7 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
-from uuid import UUID, uuid4
 from typing import Optional
+from uuid import UUID
 
 from src.domain.models import Order, OrderStatus
 
@@ -9,6 +9,7 @@ from src.domain.models import Order, OrderStatus
 @dataclass(frozen=True)
 class CreateOrderDTO:
     """DTO for creating a new order."""
+
     user_id: str
     item_id: UUID
     quantity: int
@@ -27,6 +28,7 @@ class CreateOrderDTO:
 @dataclass(frozen=True)
 class OrderResponseDTO:
     """DTO for returning order data from Application layer."""
+
     id: UUID
     user_id: str
     item_id: UUID

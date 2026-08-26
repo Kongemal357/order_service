@@ -1,8 +1,7 @@
 from typing import AsyncGenerator
 
 from fastapi import Depends
-
-from src.application.ports import UnitOfWork, CatalogClient
+from src.application.ports import CatalogClient, UnitOfWork
 from src.application.usecases import CreateOrderUseCase, GetOrderUseCase
 from src.infrastructure.http.catalog_client import CatalogHTTPClient
 from src.infrastructure.persistence.uow import SQLAlchemyUnitOfWork

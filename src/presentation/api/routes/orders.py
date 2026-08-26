@@ -2,20 +2,18 @@ import logging
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
-
+from src.application.usecases import CreateOrderUseCase, GetOrderUseCase
 from src.domain.exceptions import (
+    CatalogServiceError,
     InsufficientStockError,
     OrderAlreadyExistsError,
     OrderNotFoundError,
-    CatalogServiceError,
 )
-from src.application.usecases import CreateOrderUseCase, GetOrderUseCase
-from src.application.dto import CreateOrderDTO
 from src.presentation.api.dependencies import (
     get_create_order_use_case,
     get_get_order_use_case,
 )
-from src.presentation.api.schemas import CreateOrderRequest, OrderResponse, ErrorResponse
+from src.presentation.api.schemas import CreateOrderRequest, ErrorResponse, OrderResponse
 
 logger = logging.getLogger(__name__)
 
@@ -33,8 +31,8 @@ router = APIRouter(prefix="/api/orders", tags=["orders"])
     },
 )
 async def create_order(
-        request: CreateOrderRequest,
-        use_case: CreateOrderUseCase = Depends(get_create_order_use_case),
+    request: CreateOrderRequest,
+    use_case: CreateOrderUseCase = Depends(get_create_order_use_case),
 ) -> OrderResponse:
     """Create a new order."""
     logger.info(f"Received create order request: {request}")
@@ -48,7 +46,7 @@ async def create_order(
         raise HTTPException(status_code=400, detail=str(e))
     except OrderAlreadyExistsError as e:
         raise HTTPException(status_code=409, detail=str(e))
-    except CatalogServiceError as e:
+    except CatalogServiceError:
         raise HTTPException(status_code=503, detail="Catalog Service unavailable")
     except Exception as e:
         logger.exception(f"Unexpected error: {e}")
@@ -61,8 +59,8 @@ async def create_order(
     responses={404: {"model": ErrorResponse}},
 )
 async def get_order(
-        order_id: UUID,
-        use_case: GetOrderUseCase = Depends(get_get_order_use_case),
+    order_id: UUID,
+    use_case: GetOrderUseCase = Depends(get_get_order_use_case),
 ) -> OrderResponse:
     """Get an order by ID."""
     logger.info(f"Received get order request: {order_id}")

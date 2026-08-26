@@ -5,8 +5,8 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.domain.models import Order, OrderStatus
 from src.application.ports.repositories import OrderRepository
+from src.domain.models import Order, OrderStatus
 from src.infrastructure.persistence.models import OrderModel
 
 logger = logging.getLogger(__name__)

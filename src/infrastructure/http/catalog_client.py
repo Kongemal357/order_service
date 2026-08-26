@@ -4,16 +4,16 @@ from uuid import UUID
 
 import httpx
 
-from src.domain.models import CatalogItem
-from src.domain.exceptions import CatalogServiceError
 from src.application.ports.catalog_client import CatalogClient as CatalogClientPort
+from src.domain.exceptions import CatalogServiceError
+from src.domain.models import CatalogItem
 from src.settings import settings
 
 logger = logging.getLogger(__name__)
 
 
 class CatalogHTTPClient(CatalogClientPort):
-    """ HTTP client for Catalog Service. """
+    """HTTP client for Catalog Service."""
 
     def __init__(self, base_url: str | None = None, api_key: str | None = None):
         self.base_url = base_url or settings.CAPASHINO_BASE_URL
@@ -21,7 +21,7 @@ class CatalogHTTPClient(CatalogClientPort):
         self.timeout = 10.0
 
     async def get_item(self, item_id: UUID) -> CatalogItem:
-        """ Fetch an item from Catalog Service."""
+        """Fetch an item from Catalog Service."""
 
         url = urljoin(self.base_url, f"api/catalog/items/{item_id}")
         headers = {"X-API-Key": self.api_key}
@@ -48,7 +48,9 @@ class CatalogHTTPClient(CatalogClientPort):
             logger.error(f"Catalog Service timeout: {e}")
             raise CatalogServiceError(f"Catalog Service timeout: {e}")
         except httpx.HTTPStatusError as e:
-            logger.error(f"Catalog Service HTTP error: {e.response.status_code} - {e.response.text}")
+            logger.error(
+                f"Catalog Service HTTP error: {e.response.status_code} - {e.response.text}"
+            )
             if e.response.status_code == 404:
                 raise CatalogServiceError(f"Item {item_id} not found")
             raise CatalogServiceError(f"Catalog Service error: {e.response.status_code}")

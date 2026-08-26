@@ -1,14 +1,12 @@
 import logging
-from uuid import UUID
 
+from src.application.dto import CreateOrderDTO, OrderResponseDTO
+from src.application.ports import CatalogClient, UnitOfWork
 from src.domain.exceptions import (
     CatalogServiceError,
     InsufficientStockError,
-    OrderAlreadyExistsError,
 )
 from src.domain.models import Order
-from src.application.ports import CatalogClient, UnitOfWork
-from src.application.dto import CreateOrderDTO, OrderResponseDTO
 
 logger = logging.getLogger(__name__)
 
@@ -36,9 +34,7 @@ class CreateOrderUseCase:
 
         async with self.uow as uow:
             # Check idempotency
-            existing_order = await uow.order_repo.get_by_idempotency_key(
-                dto.idempotency_key
-            )
+            existing_order = await uow.order_repo.get_by_idempotency_key(dto.idempotency_key)
             if existing_order:
                 logger.info(f"Idempotent request: returning existing order {existing_order.id}")
                 return OrderResponseDTO.from_domain(existing_order)

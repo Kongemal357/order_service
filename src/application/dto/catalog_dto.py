@@ -8,6 +8,7 @@ from src.domain.models import CatalogItem
 @dataclass(frozen=True)
 class CatalogItemDTO:
     """DTO for catalog item data."""
+
     id: UUID
     name: str
     price: str

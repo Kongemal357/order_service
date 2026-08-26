@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from src.application.dto import CreateOrderDTO
 from src.domain.models import OrderStatus
@@ -38,7 +38,6 @@ class OrderResponse(BaseModel):
     model_config = ConfigDict(
         from_attributes=True,
     )
-
 
 
 class ErrorResponse(BaseModel):

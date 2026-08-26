@@ -1,15 +1,15 @@
 import logging
 from uuid import UUID
 
-from src.domain.exceptions import OrderNotFoundError
-from src.application.ports import UnitOfWork
 from src.application.dto import OrderResponseDTO
+from src.application.ports import UnitOfWork
+from src.domain.exceptions import OrderNotFoundError
 
 logger = logging.getLogger(__name__)
 
 
 class GetOrderUseCase:
-    """ Use case for retrieving an order by ID."""
+    """Use case for retrieving an order by ID."""
 
     def __init__(self, uow: UnitOfWork):
         self.uow = uow
