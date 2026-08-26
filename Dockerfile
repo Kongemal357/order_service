@@ -22,4 +22,4 @@ USER appuser
 
 EXPOSE 8000
 
-CMD ["uv", "run", "python", "bin/run.py"]
+CMD ["uv", "run", "python", "bin/run.py"]# Force rebuild: Wed Aug 26 05:26:39 PM MSK 2026
