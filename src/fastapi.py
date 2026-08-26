@@ -19,6 +19,7 @@ def create_app() -> FastAPI:
         title=settings.SERVICE_NAME,
         version="1.0.0",
         description="Order Service with Clean Architecture",
+        redirect_slashes=False,
     )
 
     # CORS
