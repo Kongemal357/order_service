@@ -22,5 +22,5 @@ USER appuser
 
 EXPOSE 8000
 
-ENTRYPOINT ["uv", "run", "python"]
+ENTRYPOINT ["uv", "run", "--no-sync", "python"]
 CMD ["bin/run.py"]
