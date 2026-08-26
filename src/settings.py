@@ -1,0 +1,30 @@
+from pydantic_settings import BaseSettings
+
+class Settings(BaseSettings):
+
+    # Service configuration
+    SERVICE_NAME: str = "order-service"
+    DEBUG: bool = False
+
+    # HTTP server
+    HOST: str = "0.0.0.0"
+    PORT: int = 8000
+
+    # Database
+    DATABASE_URL: str
+
+    # Capashino Services
+    CAPASHINO_BASE_URL: str = "https://capashino.dev-2.python-labs.ru"
+    CAPASHINO_API_KEY: str = ""  # Required in production
+    INTERNAL_HOSTNAME: str = "http://order-service.order-service.svc:8000"
+
+    # Kafka
+    KAFKA_BOOTSTRAP_SERVERS: str = "kafka.kafka.svc.cluster.local:9092"
+
+    class Config:
+        env_file = ".env"
+        env_file_encoding = "utf-8"
+        extra = "ignore"
+
+
+settings = Settings()
