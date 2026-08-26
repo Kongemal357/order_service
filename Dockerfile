@@ -12,7 +12,7 @@ ENV UV_RETRIES=10
 ENV UV_NO_CACHE=1
 
 COPY pyproject.toml uv.lock ./
-RUN uv sync --frozen --no-dev
+RUN uv sync --frozen --no-group dev
 
 COPY . .
 
