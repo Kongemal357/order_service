@@ -68,20 +68,34 @@ class SQLAlchemyOrderRepository(OrderRepository):
 
         if model:
             model.status = order.status.value
+            model.payment_id = order.payment_id
             model.updated_at = order.updated_at
             await self.session.flush()
 
         return order
 
-    @staticmethod
-    def _to_domain(model: OrderModel) -> Order:
+    def _to_domain(self, model: OrderModel) -> Order:
         return Order(
             id=model.id,
             user_id=model.user_id,
             item_id=model.item_id,
             quantity=model.quantity,
             status=OrderStatus(model.status),
+            payment_id=model.payment_id,
             created_at=model.created_at,
             updated_at=model.updated_at,
             idempotency_key=model.idempotency_key,
+        )
+
+    def _to_orm(self, order: Order) -> OrderModel:
+        return OrderModel(
+            id=order.id,
+            user_id=order.user_id,
+            item_id=order.item_id,
+            quantity=order.quantity,
+            status=order.status.value,
+            payment_id=order.payment_id,
+            idempotency_key=order.idempotency_key,
+            created_at=order.created_at,
+            updated_at=order.updated_at,
         )
