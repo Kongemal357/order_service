@@ -22,6 +22,7 @@ class OrderModel(Base):
     item_id: Mapped[UUID] = mapped_column(PGUUID, nullable=False)
     quantity: Mapped[int] = mapped_column(nullable=False)
     status: Mapped[str] = mapped_column(String(50), nullable=False)
+    payment_id: Mapped[UUID | None] = mapped_column(PGUUID, nullable=True)
     idempotency_key: Mapped[str | None] = mapped_column(String(255), unique=True, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
