@@ -12,10 +12,14 @@ from src.settings import settings
 
 def setup_logging():
     """Configure logging"""
+    log_level = logging.DEBUG if settings.DEBUG else logging.INFO
+
     logging.basicConfig(
-        level=logging.DEBUG if settings.DEBUG else logging.INFO,
+        level=log_level,
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
+
+    logging.getLogger("src").setLevel(log_level)
 
 
 def run_migrations():
