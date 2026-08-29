@@ -6,6 +6,14 @@ from uuid import UUID, uuid4
 from src.domain.exceptions import DomainError
 
 
+class PaymentStatus(StrEnum):
+    """Payment status."""
+
+    PENDING = "pending"
+    SUCCEEDED = "succeeded"
+    FAILED = "failed"
+
+
 class OrderStatus(StrEnum):
     """Order status enumeration."""
 
@@ -27,6 +35,7 @@ class Order:
     created_at: datetime
     updated_at: datetime
     idempotency_key: str | None = None
+    payment_id: UUID | None = None
 
     @classmethod
     def create(
@@ -63,11 +72,16 @@ class Order:
         self.status = OrderStatus.SHIPPED
         self.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
 
-    def cancel(self, reason: str = "Cancelled") -> None:
+    def cancel(self) -> None:
         """Transition order to CANCELLED status."""
-        if self.status in (OrderStatus.SHIPPED, OrderStatus.CANCELLED):
-            raise DomainError(f"Cannot cancel order {self.id} with status {self.status}")
+        if self.status == OrderStatus.CANCELLED:
+            raise DomainError(f"Order {self.id} is already cancelled")
         self.status = OrderStatus.CANCELLED
+        self.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
+
+    def set_payment_id(self, payment_id: UUID) -> None:
+        """Set payment ID when payment is created."""
+        self.payment_id = payment_id
         self.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
 
 
