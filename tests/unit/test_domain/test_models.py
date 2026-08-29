@@ -1,8 +1,3 @@
-"""
-Unit tests for domain entities.
-"""
-
-
 import pytest
 
 from src.domain.exceptions import DomainError
