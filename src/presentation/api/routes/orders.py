@@ -3,6 +3,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from src.application.usecases import CreateOrderUseCase, GetOrderUseCase
+from src.application.usecases.process_payment_callback import ProcessPaymentCallbackUseCase
 from src.domain.exceptions import (
     CatalogServiceError,
     InsufficientStockError,
@@ -12,8 +13,14 @@ from src.domain.exceptions import (
 from src.presentation.api.dependencies import (
     get_create_order_use_case,
     get_get_order_use_case,
+    get_process_payment_callback_use_case,
 )
-from src.presentation.api.schemas import CreateOrderRequest, ErrorResponse, OrderResponse
+from src.presentation.api.schemas import (
+    CreateOrderRequest,
+    ErrorResponse,
+    OrderResponse,
+    PaymentCallbackRequest,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -75,3 +82,28 @@ async def get_order(
     except Exception as e:
         logger.exception(f"Unexpected error: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.post("/payment-callback", status_code=status.HTTP_200_OK)
+async def payment_callback(
+    request: PaymentCallbackRequest,
+    use_case: ProcessPaymentCallbackUseCase = Depends(get_process_payment_callback_use_case),
+) -> dict:
+    """Handle payment callback from Payment Service."""
+    logger.info(f"Received payment callback: order={request.order_id}, status={request.status}")
+
+    try:
+        result = await use_case.execute(request.to_dto())
+
+        return {
+            "status": "ok",
+            "order_id": str(result.id),
+            "order_status": result.status.value,
+        }
+
+    except OrderNotFoundError as e:
+        logger.warning(f"Order not found: {e}")
+        return {"status": "error", "message": str(e)}
+    except Exception as e:
+        logger.exception(f"Error processing payment callback: {e}")
+        return {"status": "error", "message": "Internal server error"}
