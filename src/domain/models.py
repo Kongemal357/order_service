@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import StrEnum
+from typing import Any
 from uuid import UUID, uuid4
 
 from src.domain.exceptions import DomainError
@@ -94,3 +95,76 @@ class CatalogItem:
     price: str
     available_qty: int
     created_at: datetime
+
+
+class OutboxStatus(StrEnum):
+    """Status of outbox event."""
+
+    PENDING = "pending"
+    SENT = "sent"
+    FAILED = "failed"
+
+
+@dataclass
+class OutboxEvent:
+    """Outbox event for reliable event publishing."""
+
+    id: UUID
+    event_type: str
+    payload: dict[str, Any]
+    idempotency_key: str
+    status: OutboxStatus
+    created_at: datetime
+    sent_at: datetime | None = None
+
+    @classmethod
+    def create(
+        cls,
+        event_type: str,
+        payload: dict[str, Any],
+        idempotency_key: str,
+    ) -> "OutboxEvent":
+        return cls(
+            id=uuid4(),
+            event_type=event_type,
+            payload=payload,
+            idempotency_key=idempotency_key,
+            status=OutboxStatus.PENDING,
+            created_at=datetime.now(timezone.utc).replace(tzinfo=None),
+            sent_at=None,
+        )
+
+    def mark_sent(self) -> None:
+        """Mark event as sent."""
+        self.status = OutboxStatus.SENT
+        self.sent_at = datetime.now(timezone.utc).replace(tzinfo=None)
+
+    def mark_failed(self) -> None:
+        """Mark event as failed."""
+        self.status = OutboxStatus.FAILED
+
+
+@dataclass
+class InboxRecord:
+    """Inbox record for idempotent event processing."""
+
+    id: UUID
+    event_id: str
+    idempotency_key: str
+    event_type: str
+    processed_at: datetime
+
+    @classmethod
+    def create(
+        cls,
+        event_id: str,
+        idempotency_key: str,
+        event_type: str,
+    ) -> "InboxRecord":
+        return cls(
+            id=uuid4(),
+            event_id=event_id,
+            idempotency_key=idempotency_key,
+            event_type=event_type,
+            processed_at=datetime.now(timezone.utc).replace(tzinfo=None),
+        )
