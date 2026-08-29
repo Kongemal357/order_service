@@ -26,3 +26,15 @@ class CatalogServiceError(DomainError):
     """Raised when Catalog Service returns an error."""
 
     pass
+
+
+class PaymentError(DomainError):
+    """Raised when Payment Service returns an error."""
+
+    pass
+
+
+class PaymentAlreadyProcessedError(DomainError):
+    """Raised when a payment callback is received multiple times."""
+
+    pass
