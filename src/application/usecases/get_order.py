@@ -11,13 +11,13 @@ logger = logging.getLogger(__name__)
 class GetOrderUseCase:
     """Use case for retrieving an order by ID."""
 
-    def __init__(self, uow: UnitOfWork):
-        self.uow = uow
+    def __init__(self, uow_factory: UnitOfWork):
+        self.uow_factory = uow_factory
 
     async def execute(self, order_id: UUID) -> OrderResponseDTO:
         logger.info(f"Getting order: {order_id}")
 
-        async with self.uow as uow:
+        async with self.uow_factory() as uow:
             # Get order from repository
             order = await uow.order_repo.get_by_id(order_id)
 

@@ -31,18 +31,18 @@ class CreateOrderUseCase:
 
     def __init__(
         self,
-        uow: UnitOfWork,
+        uow_factory: UnitOfWork,
         catalog_client: CatalogClient,
         payment_client: PaymentClient,
     ):
-        self.uow = uow
+        self.uow_factory = uow_factory
         self.catalog_client = catalog_client
         self.payment_client = payment_client
 
     async def execute(self, dto: CreateOrderDTO) -> OrderResponseDTO:
         logger.info(f"Creating order: user={dto.user_id}, item={dto.item_id}")
 
-        async with self.uow as uow:
+        async with self.uow_factory() as uow:
             existing_order = await uow.order_repo.get_by_idempotency_key(dto.idempotency_key)
             if existing_order:
                 logger.info("Idempotent request: returning existing order")
@@ -61,7 +61,7 @@ class CreateOrderUseCase:
 
         total_amount = Decimal(catalog_item.price) * dto.quantity
 
-        async with self.uow as uow:
+        async with self.uow_factory() as uow:
             order = Order.create(
                 user_id=dto.user_id,
                 item_id=dto.item_id,
@@ -87,7 +87,7 @@ class CreateOrderUseCase:
         except PaymentError as e:
             logger.error(f"Payment failed: {e}")
 
-            async with self.uow as uow:
+            async with self.uow_factory() as uow:
                 order = await uow.order_repo.get_by_id(order.id)
                 if order and order.status == OrderStatus.NEW:
                     order.cancel()
@@ -96,7 +96,7 @@ class CreateOrderUseCase:
                     logger.info(f"Order cancelled due to payment failure: {order.id}")
             raise
 
-        async with self.uow as uow:
+        async with self.uow_factory() as uow:
             order = await uow.order_repo.get_by_id(order.id)
             order.set_payment_id(payment_response.id)
             await uow.order_repo.update(order)

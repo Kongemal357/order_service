@@ -1,39 +1,60 @@
 import logging
+from contextlib import asynccontextmanager
+from typing import AsyncGenerator
 
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from src.application.ports.inbox_repository import InboxRepository
+from src.application.ports.outbox_repository import OutboxRepository
 from src.application.ports.repositories import OrderRepository
-from src.application.ports.uow import UnitOfWork
-from src.infrastructure.persistence.database import AsyncSessionLocal
-from src.infrastructure.persistence.repositories import SQLAlchemyOrderRepository
+from src.infrastructure.persistence.repositories import (
+    SQLAlchemyInboxRepository,
+    SQLAlchemyOrderRepository,
+    SQLAlchemyOutboxRepository,
+)
 
 logger = logging.getLogger(__name__)
 
 
-class SQLAlchemyUnitOfWork(UnitOfWork):
-    """SQLAlchemy implementation of Unit of Work."""
+class _UnitOfWorkImplementation:
+    def __init__(self, session: AsyncSession):
+        self._session = session
+        self._order_repo = SQLAlchemyOrderRepository(session)
+        self._outbox_repo = SQLAlchemyOutboxRepository(session)
+        self._inbox_repo = SQLAlchemyInboxRepository(session)
 
-    def __init__(self, session_factory=None):
-        self.session_factory = session_factory or AsyncSessionLocal
-        self.session: AsyncSession | None = None
-        self.order_repo: OrderRepository | None = None
+    @property
+    def order_repo(self) -> OrderRepository:
+        return self._order_repo
 
-    async def __aenter__(self):
-        self.session = self.session_factory()
-        self.order_repo = SQLAlchemyOrderRepository(self.session)
-        return self
+    @property
+    def outbox_repo(self) -> OutboxRepository:
+        return self._outbox_repo
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        if exc_type:
-            await self.rollback()
-        await self.session.close()
+    @property
+    def inbox_repo(self) -> InboxRepository:
+        return self._inbox_repo
 
-    async def commit(self):
-        if self.session:
-            logger.debug("Committing transaction")
-            await self.session.commit()
+    async def commit(self) -> None:
+        await self._session.commit()
+        logger.debug("Transaction committed")
 
-    async def rollback(self):
-        if self.session:
-            logger.warning("Rolling back transaction")
-            await self.session.rollback()
+    async def rollback(self) -> None:
+        await self._session.rollback()
+        logger.warning("Transaction rolled back")
+
+
+class SQLAlchemyUnitOfWork:
+    def __init__(self, session_factory: async_sessionmaker[AsyncSession]):
+        self._session_factory = session_factory
+
+    @asynccontextmanager
+    async def __call__(self) -> AsyncGenerator[_UnitOfWorkImplementation, None]:
+        async with self._session_factory() as session:
+            uow = _UnitOfWorkImplementation(session)
+            try:
+                yield uow
+                await session.rollback()
+            except Exception:
+                await session.rollback()
+                raise

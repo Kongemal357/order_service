@@ -1,25 +1,22 @@
 from abc import ABC, abstractmethod
+from typing import AsyncContextManager, Protocol
 
+from .inbox_repository import InboxRepository
+from .outbox_repository import OutboxRepository
 from .repositories import OrderRepository
 
 
 class UnitOfWork(ABC):
-    """Port for Unit of Work pattern - manages transactions."""
+    @abstractmethod
+    async def __call__(self) -> AsyncContextManager:
+        pass
 
+
+class UnitOfWorkImpl(Protocol):
     order_repo: OrderRepository
+    outbox_repo: OutboxRepository
+    inbox_repo: InboxRepository
 
-    @abstractmethod
-    async def __aenter__(self):
-        pass
+    async def commit(self) -> None: ...
 
-    @abstractmethod
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        pass
-
-    @abstractmethod
-    async def commit(self):
-        pass
-
-    @abstractmethod
-    async def rollback(self):
-        pass
+    async def rollback(self) -> None: ...
