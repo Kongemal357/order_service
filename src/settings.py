@@ -1,6 +1,41 @@
 from pydantic_settings import BaseSettings
 
 
+class KafkaSettings(BaseSettings):
+    """Kafka configuration."""
+
+    # Connection
+    BOOTSTRAP_SERVERS: str = "localhost:9092"
+
+    # Topics
+    ORDER_EVENTS_TOPIC: str = "student_system-order.events"
+    SHIPMENT_EVENTS_TOPIC: str = "student_system-shipment.events"
+    SHIPMENT_EVENTS_RETRY_TOPIC: str = "student_system-shipment.events.retry"
+    SHIPMENT_EVENTS_DLQ_TOPIC: str = "student_system-shipment.events.dlq"
+
+    # Retry delays
+    RETRY_DELAYS: list[int] = [5, 30, 120, 600]  # 5s, 30s, 2min, 10min
+    MAX_RETRIES: int = 4
+
+    # Consumer
+    CONSUMER_GROUP_ID: str = "order-service-group"
+
+    # Producer
+    ACKS: str = "all"
+    ENABLE_IDEMPOTENCE: bool = True
+    RETRY_BACKOFF_MS: int = 200
+    BATCH_SIZE: int = 16384
+    LINGER_MS: int = 10
+    COMPRESSION_TYPE: str = "gzip"
+    REQUEST_TIMEOUT_MS: int = 30000
+
+    # Consumer batch
+    MIN_BATCH_SIZE: int = 10
+    MAX_BATCH_SIZE: int = 100
+    MAX_WAIT_TIME: float = 1.0
+    POLL_TIMEOUT_MS: int = 100
+
+
 class Settings(BaseSettings):
     # Service configuration
     SERVICE_NAME: str = "order-service"
@@ -18,12 +53,12 @@ class Settings(BaseSettings):
     POSTGRES_PASSWORD: str
 
     # Capashino Services
-    CAPASHINO_BASE_URL: str
-    CAPASHINO_API_KEY: str = ""  # Required in production
+    CAPASHINO_BASE_URL: str = ""
+    CAPASHINO_API_KEY: str = ""
     INTERNAL_HOSTNAME: str = "http://order-service.order-service.svc:8000"
 
     # Kafka
-    KAFKA_BOOTSTRAP_SERVERS: str = "kafka.kafka.svc.cluster.local:9092"
+    KAFKA: KafkaSettings = KafkaSettings()
 
     @property
     def DATABASE_URL(self) -> str:
