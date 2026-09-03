@@ -2,8 +2,8 @@ import logging
 import time
 from typing import Optional
 
-from src.settings import settings
 from src.infrastructure.messaging.kafka_producer import KafkaProducer
+from src.settings import settings
 
 logger = logging.getLogger(__name__)
 
@@ -23,10 +23,10 @@ class RetryHandler:
         self._retry_delays = self._config.RETRY_DELAYS
 
     async def send_to_retry(
-            self,
-            event_data: dict,
-            retry_count: int = 1,
-            error: Optional[str] = None,
+        self,
+        event_data: dict,
+        retry_count: int = 1,
+        error: Optional[str] = None,
     ) -> None:
         """
         Send failed event to retry topic.
@@ -38,14 +38,14 @@ class RetryHandler:
         """
         if retry_count >= self._max_retries:
             # Max retries exceeded → DLQ
-            logger.error(
-                f"Event exceeded max retries ({self._max_retries}), sending to DLQ"
-            )
+            logger.error(f"Event exceeded max retries ({self._max_retries}), sending to DLQ")
             await self._send_to_dlq(event_data, retry_count, error)
             return
 
         # Calculate delay
-        delay = self._retry_delays[retry_count - 1] if retry_count <= len(self._retry_delays) else 60
+        delay = (
+            self._retry_delays[retry_count - 1] if retry_count <= len(self._retry_delays) else 60
+        )
 
         retry_data = {
             "event_data": event_data,
@@ -62,8 +62,7 @@ class RetryHandler:
         )
 
         logger.info(
-            f"Event sent to retry topic (retry {retry_count}/{self._max_retries}, "
-            f"delay: {delay}s)"
+            f"Event sent to retry topic (retry {retry_count}/{self._max_retries}, delay: {delay}s)"
         )
 
     async def _send_to_dlq(self, event_data: dict, retry_count: int, error: Optional[str]) -> None:

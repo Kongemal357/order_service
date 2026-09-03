@@ -2,12 +2,12 @@ import asyncio
 import json
 import logging
 import time
-from typing import Callable, Awaitable, Optional
+from typing import Optional
 
 from aiokafka import AIOKafkaConsumer
 
-from src.settings import settings
 from src.infrastructure.messaging.kafka_producer import KafkaProducer
+from src.settings import settings
 
 logger = logging.getLogger(__name__)
 
@@ -21,11 +21,11 @@ class RetryConsumer:
     """
 
     def __init__(
-            self,
-            producer: KafkaProducer,
-            main_topic: Optional[str] = None,
-            retry_topic: Optional[str] = None,
-            group_id: Optional[str] = None,
+        self,
+        producer: KafkaProducer,
+        main_topic: Optional[str] = None,
+        retry_topic: Optional[str] = None,
+        group_id: Optional[str] = None,
     ):
         self._config = settings.KAFKA
         self._producer = producer
@@ -112,9 +112,7 @@ class RetryConsumer:
                 key=message.key,
             )
 
-            logger.info(
-                f"Event sent back to main topic (retry {retry_count})"
-            )
+            logger.info(f"Event sent back to main topic (retry {retry_count})")
 
         except Exception as e:
             logger.error(f"Error processing retry message: {e}")

@@ -69,9 +69,7 @@ class ProcessOutboxUseCase:
                     await uow.outbox_repo.mark_failed(event_id)
 
                 await uow.commit()
-                logger.info(
-                    f"Committed: {len(sent_ids)} sent, {len(failed_ids)} failed"
-                )
+                logger.info(f"Committed: {len(sent_ids)} sent, {len(failed_ids)} failed")
 
             logger.info(f"Processed {len(sent_ids) + len(failed_ids)} outbox events")
             return len(sent_ids)

@@ -3,7 +3,6 @@ import json
 import logging
 from collections import deque
 from datetime import datetime, timezone
-from pydoc_data.topics import topics
 from typing import Awaitable, Callable, Optional
 
 from aiokafka import AIOKafkaConsumer
@@ -140,7 +139,10 @@ class KafkaConsumer:
             current_time = datetime.now(timezone.utc).replace(tzinfo=None)
             elapsed = (current_time - self._first_message_time).total_seconds()
             if elapsed >= self._max_wait_time:
-                logger.debug(f"Wait time exceeded ({elapsed:.2f}s), processing {len(self._message_buffer)} messages")
+                logger.debug(
+                    f"Wait time exceeded ({elapsed:.2f}s), "
+                    f"processing {len(self._message_buffer)} messages"
+                )
                 return True
 
         # Hard limit: max batch size reached

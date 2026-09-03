@@ -1,10 +1,8 @@
-import asyncio
 import json
 import logging
-from typing import Any, Optional
+from typing import Any
 
 from aiokafka import AIOKafkaProducer
-from aiokafka.errors import KafkaConnectionError, KafkaError
 
 from src.settings import settings
 
@@ -25,8 +23,8 @@ class KafkaProducer:
 
         self.producer = AIOKafkaProducer(
             bootstrap_servers=self._config.BOOTSTRAP_SERVERS,
-            value_serializer=lambda v: json.dumps(v).encode('utf-8'),
-            key_serializer=lambda k: k.encode('utf-8') if k else None,
+            value_serializer=lambda v: json.dumps(v).encode("utf-8"),
+            key_serializer=lambda k: k.encode("utf-8") if k else None,
             acks=self._config.ACKS,
             enable_idempotence=self._config.ENABLE_IDEMPOTENCE,
             retry_backoff_ms=self._config.RETRY_BACKOFF_MS,

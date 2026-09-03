@@ -2,23 +2,23 @@ import asyncio
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from src.presentation.api.routes.orders import router
-from src.presentation.api.dependencies import (
-    get_uow_factory,
-    get_retry_handler,
-)
-from src.settings import settings
-from src.infrastructure.messaging.kafka_producer import KafkaProducer
+from fastapi import FastAPI
+from src.application.dto.event_dto import OrderCancelledEventDTO, OrderShippedEventDTO
+from src.application.usecases.process_outbox import ProcessOutboxUseCase
+from src.application.usecases.process_shipping_event import ProcessShippingEventUseCase
 from src.infrastructure.messaging.kafka_consumer import KafkaConsumer
+from src.infrastructure.messaging.kafka_producer import KafkaProducer
 from src.infrastructure.messaging.retry_consumer import RetryConsumer
 from src.infrastructure.persistence.database import engine
 from src.infrastructure.workers.outbox_worker import OutboxWorker
-from src.application.usecases.process_outbox import ProcessOutboxUseCase
-from src.application.usecases.process_shipping_event import ProcessShippingEventUseCase
-from src.application.dto.event_dto import OrderShippedEventDTO, OrderCancelledEventDTO
+from src.presentation.api.dependencies import (
+    get_retry_handler,
+    get_uow_factory,
+)
+from src.presentation.api.routes.orders import router
+from src.settings import settings
 
 logger = logging.getLogger(__name__)
 

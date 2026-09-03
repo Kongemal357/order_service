@@ -17,9 +17,9 @@ class ProcessShippingEventUseCase:
     """
 
     def __init__(
-            self,
-            uow_factory: UnitOfWork,
-            retry_handler: RetryHandler,
+        self,
+        uow_factory: UnitOfWork,
+        retry_handler: RetryHandler,
     ):
         self.uow_factory = uow_factory
         self.retry_handler = retry_handler
@@ -36,9 +36,9 @@ class ProcessShippingEventUseCase:
         return record is not None
 
     async def process_shipped(
-            self,
-            event_dto: OrderShippedEventDTO,
-            retry_count: int = 0,
+        self,
+        event_dto: OrderShippedEventDTO,
+        retry_count: int = 0,
     ) -> None:
         """
         Process order.shipped event.
@@ -99,8 +99,8 @@ class ProcessShippingEventUseCase:
             )
 
     async def process_cancelled(
-            self,
-            event_dto: OrderCancelledEventDTO,
+        self,
+        event_dto: OrderCancelledEventDTO,
         retry_count: int = 0,
     ) -> None:
         """Process order.cancelled event."""
