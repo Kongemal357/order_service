@@ -1,13 +1,16 @@
 import logging
-from typing import Optional
+from datetime import datetime, timezone
+from typing import List, Optional
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.application.ports.inbox_repository import InboxRepository
+from src.application.ports.outbox_repository import OutboxRepository
 from src.application.ports.repositories import OrderRepository
-from src.domain.models import Order, OrderStatus
-from src.infrastructure.persistence.models import OrderModel
+from src.domain.models import InboxRecord, Order, OrderStatus, OutboxEvent, OutboxStatus
+from src.infrastructure.persistence.models import InboxModel, OrderModel, OutboxModel
 
 logger = logging.getLogger(__name__)
 
@@ -99,3 +102,101 @@ class SQLAlchemyOrderRepository(OrderRepository):
             created_at=order.created_at,
             updated_at=order.updated_at,
         )
+
+
+class SQLAlchemyOutboxRepository(OutboxRepository):
+    """SQLAlchemy implementation of OutboxRepository."""
+
+    def __init__(self, session: AsyncSession):
+        self.session = session
+
+    async def save(self, event: OutboxEvent) -> OutboxEvent:
+        model = OutboxModel(
+            id=event.id,
+            event_type=event.event_type,
+            payload=event.payload,
+            idempotency_key=event.idempotency_key,
+            status=event.status.value,
+            created_at=event.created_at,
+            sent_at=event.sent_at,
+        )
+        self.session.add(model)
+        await self.session.flush()
+        return event
+
+    async def get_pending(self, limit: int = 100) -> List[OutboxEvent]:
+        stmt = (
+            select(OutboxModel)
+            .where(OutboxModel.status == OutboxStatus.PENDING)
+            .order_by(OutboxModel.created_at)
+            .limit(limit)
+            .with_for_update(skip_locked=True)
+        )
+        result = await self.session.execute(stmt)
+        models = result.scalars().all()
+
+        return [self._to_domain(m) for m in models]
+
+    async def mark_sent(self, event_id: UUID) -> None:
+        stmt = (
+            update(OutboxModel)
+            .where(OutboxModel.id == event_id)
+            .values(
+                status=OutboxStatus.SENT, sent_at=datetime.now(timezone.utc).replace(tzinfo=None)
+            )
+        )
+        await self.session.execute(stmt)
+        await self.session.flush()
+
+    async def mark_failed(self, event_id: UUID) -> None:
+        stmt = (
+            update(OutboxModel).where(OutboxModel.id == event_id).values(status=OutboxStatus.FAILED)
+        )
+        await self.session.execute(stmt)
+        await self.session.flush()
+
+    @staticmethod
+    def _to_domain(model: OutboxModel) -> OutboxEvent:
+        return OutboxEvent(
+            id=model.id,
+            event_type=model.event_type,
+            payload=model.payload,
+            idempotency_key=model.idempotency_key,
+            status=OutboxStatus(model.status),
+            created_at=model.created_at,
+            sent_at=model.sent_at,
+        )
+
+
+class SQLAlchemyInboxRepository(InboxRepository):
+    """SQLAlchemy implementation of InboxRepository."""
+
+    def __init__(self, session: AsyncSession):
+        self.session = session
+
+    async def save(self, record: InboxRecord) -> InboxRecord:
+        model = InboxModel(
+            id=record.id,
+            event_id=record.event_id,
+            idempotency_key=record.idempotency_key,
+            event_type=record.event_type,
+            processed_at=record.processed_at,
+        )
+        self.session.add(model)
+        await self.session.flush()
+        return record
+
+    async def get_by_idempotency_key(self, key: str) -> Optional[InboxRecord]:
+        stmt = select(InboxModel).where(InboxModel.idempotency_key == key)
+        result = await self.session.execute(stmt)
+        model = result.scalar_one_or_none()
+
+        if model:
+            return InboxRecord(
+                id=model.id,
+                event_id=model.event_id,
+                idempotency_key=model.idempotency_key,
+                event_type=model.event_type,
+                processed_at=model.processed_at,
+            )
+        return None
