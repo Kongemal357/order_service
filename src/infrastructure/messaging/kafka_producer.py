@@ -4,7 +4,7 @@ from typing import Any
 
 from aiokafka import AIOKafkaProducer
 
-from src.settings import settings
+from src.settings import kafka_settings
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +15,7 @@ class KafkaProducer:
     def __init__(self):
         self._started = False
         self.producer: AIOKafkaProducer | None = None
-        self._config = settings.KAFKA  # 👈 Берем настройки
+        self._config = kafka_settings
 
     async def start(self):
         if self._started:

@@ -3,7 +3,7 @@ import time
 from typing import Optional
 
 from src.infrastructure.messaging.kafka_producer import KafkaProducer
-from src.settings import settings
+from src.settings import kafka_settings
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +16,7 @@ class RetryHandler:
 
     def __init__(self, producer: KafkaProducer):
         self._producer = producer
-        self._config = settings.KAFKA
+        self._config = kafka_settings
         self._retry_topic = self._config.SHIPMENT_EVENTS_RETRY_TOPIC
         self._dlq_topic = self._config.SHIPMENT_EVENTS_DLQ_TOPIC
         self._max_retries = self._config.MAX_RETRIES

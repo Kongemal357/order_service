@@ -2,7 +2,7 @@ import logging
 
 from src.application.ports import UnitOfWork
 from src.infrastructure.messaging.kafka_producer import KafkaProducer
-from src.settings import settings
+from src.settings import kafka_settings
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +21,7 @@ class ProcessOutboxUseCase:
     ):
         self.uow_factory = uow_factory
         self.kafka_producer = kafka_producer
-        self._config = settings.KAFKA
+        self._config = kafka_settings
         self._topic = topic or self._config.ORDER_EVENTS_TOPIC
 
     async def execute(self, limit: int = 100) -> int:

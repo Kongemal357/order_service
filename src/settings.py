@@ -35,6 +35,12 @@ class KafkaSettings(BaseSettings):
     MAX_WAIT_TIME: float = 1.0
     POLL_TIMEOUT_MS: int = 100
 
+    class Config:
+        env_file = ".env"
+        env_file_encoding = "utf-8"
+        extra = "ignore"
+        env_prefix = "KAFKA_"
+
 
 class Settings(BaseSettings):
     # Service configuration
@@ -57,9 +63,6 @@ class Settings(BaseSettings):
     CAPASHINO_API_KEY: str = ""
     INTERNAL_HOSTNAME: str = "http://order-service.order-service.svc:8000"
 
-    # Kafka
-    KAFKA: KafkaSettings = KafkaSettings()
-
     @property
     def DATABASE_URL(self) -> str:
         return f"postgresql+asyncpg://{self.POSTGRES_USERNAME}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DATABASE_NAME}"
@@ -71,3 +74,4 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+kafka_settings = KafkaSettings()

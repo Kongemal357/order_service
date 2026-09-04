@@ -8,7 +8,7 @@ from typing import Awaitable, Callable, Optional
 from aiokafka import AIOKafkaConsumer
 
 from src.infrastructure.messaging.retry_handler import RetryHandler
-from src.settings import settings
+from src.settings import kafka_settings
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +34,7 @@ class KafkaConsumer:
         poll_timeout_ms: int | None = None,
         retry_handler: Optional[RetryHandler] = None,
     ):
-        self._config = settings.KAFKA
+        self._config = kafka_settings
 
         self._topics = topics or [self._config.SHIPMENT_EVENTS_TOPIC]
         self._group_id = group_id or self._config.CONSUMER_GROUP_ID

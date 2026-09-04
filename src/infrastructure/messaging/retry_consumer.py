@@ -7,7 +7,7 @@ from typing import Optional
 from aiokafka import AIOKafkaConsumer
 
 from src.infrastructure.messaging.kafka_producer import KafkaProducer
-from src.settings import settings
+from src.settings import kafka_settings
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +27,7 @@ class RetryConsumer:
         retry_topic: Optional[str] = None,
         group_id: Optional[str] = None,
     ):
-        self._config = settings.KAFKA
+        self._config = kafka_settings
         self._producer = producer
         self._main_topic = main_topic or self._config.SHIPMENT_EVENTS_TOPIC
         self._retry_topic = retry_topic or self._config.SHIPMENT_EVENTS_RETRY_TOPIC
