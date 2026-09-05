@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from decimal import Decimal
 from enum import StrEnum
 from typing import Any
 from uuid import UUID, uuid4
@@ -24,6 +25,31 @@ class OrderStatus(StrEnum):
     CANCELLED = "CANCELLED"
 
 
+class NotificationType(StrEnum):
+    ORDER_CREATED = "order_created"
+    ORDER_PAID = "order_paid"
+    ORDER_SHIPPED = "order_shipped"
+    ORDER_CANCELLED = "order_cancelled"
+
+
+@dataclass(frozen=True)
+class Money:
+    """Value object for money."""
+
+    amount: Decimal
+
+    def __mul__(self, quantity: int) -> "Money":
+        """Multiply money by quantity."""
+        return Money(self.amount * Decimal(str(quantity)))
+
+    def __add__(self, other: "Money") -> "Money":
+        """Add two money objects."""
+        return Money(self.amount + other.amount)
+
+    def __str__(self) -> str:
+        return str(self.amount)
+
+
 @dataclass
 class Order:
     """Domain aggregate representing an order."""
@@ -37,6 +63,7 @@ class Order:
     updated_at: datetime
     idempotency_key: str | None = None
     payment_id: UUID | None = None
+    total_amount: Money | None = None
 
     @classmethod
     def create(
@@ -44,15 +71,19 @@ class Order:
         user_id: str,
         item_id: UUID,
         quantity: int,
+        item_price: Decimal,
         idempotency_key: str,
     ) -> "Order":
         """Factory method to create a new order with NEW status."""
         now = datetime.now(timezone.utc).replace(tzinfo=None)
+        total = Money(item_price) * quantity
+
         return cls(
             id=uuid4(),
             user_id=user_id,
             item_id=item_id,
             quantity=quantity,
+            total_amount=total,
             status=OrderStatus.NEW,
             created_at=now,
             updated_at=now,
