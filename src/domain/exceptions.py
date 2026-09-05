@@ -39,6 +39,8 @@ class PaymentAlreadyProcessedError(DomainError):
 
     pass
 
+
 class NotificationError(DomainError):
     """Raised when Notification Service returns an error."""
+
     pass
