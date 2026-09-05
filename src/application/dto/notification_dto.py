@@ -10,11 +10,3 @@ class SendNotificationDTO:
     message: str
     reference_id: UUID
     idempotency_key: str
-
-
-@dataclass(frozen=True)
-class NotificationTemplateDTO:
-    """DTO for notification templates."""
-
-    status: str
-    template: str
