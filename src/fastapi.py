@@ -14,6 +14,7 @@ from src.infrastructure.messaging.retry_consumer import RetryConsumer
 from src.infrastructure.persistence.database import engine
 from src.infrastructure.workers.outbox_worker import OutboxWorker
 from src.presentation.api.dependencies import (
+    get_notification_service,
     get_retry_handler,
     get_uow_factory,
 )
@@ -47,7 +48,10 @@ async def lifespan(app: FastAPI):
     # 2. Create dependencies for shipping handler
     uow_factory = get_uow_factory()
     retry_handler = get_retry_handler()
-    shipping_use_case = ProcessShippingEventUseCase(uow_factory, retry_handler)
+    notification_service = get_notification_service()
+    shipping_use_case = ProcessShippingEventUseCase(
+        uow_factory, retry_handler, notification_service
+    )
 
     # 3. Define handler with injected dependencies
     async def handle_shipping_events_batch(data_list: list[dict]) -> None:
