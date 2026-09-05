@@ -5,8 +5,9 @@ from src.application.dto.event_dto import OrderPaidEventDTO
 from src.application.dto.order_dto import OrderResponseDTO
 from src.application.dto.payment_dto import PaymentCallbackDTO
 from src.application.ports.uow import UnitOfWork
+from src.application.services.notification_service import NotificationService
 from src.domain.exceptions import DomainError, OrderNotFoundError
-from src.domain.models import OrderStatus, OutboxEvent, PaymentStatus
+from src.domain.models import NotificationType, OrderStatus, OutboxEvent, PaymentStatus
 
 logger = logging.getLogger(__name__)
 
@@ -20,8 +21,10 @@ class ProcessPaymentCallbackUseCase:
     def __init__(
         self,
         uow_factory: UnitOfWork,
+        notification_service: NotificationService,
     ):
         self.uow_factory = uow_factory
+        self.notification_service = notification_service
 
     async def execute(self, dto: PaymentCallbackDTO) -> OrderResponseDTO:
         logger.info(
@@ -38,7 +41,6 @@ class ProcessPaymentCallbackUseCase:
 
             # Idempotency check by payment_id
             if order.payment_id == dto.payment_id:
-                # Already processed → return existing order
                 if order.status in (OrderStatus.PAID, OrderStatus.SHIPPED, OrderStatus.CANCELLED):
                     logger.info(
                         f"Payment {dto.payment_id} already processed, "
@@ -53,7 +55,6 @@ class ProcessPaymentCallbackUseCase:
 
             # Verify payment_id matches
             elif order.payment_id is None:
-                # Callback arrived before we saved payment_id → set it now
                 logger.warning(f"Order {order.id} has no payment_id, setting to {dto.payment_id}")
                 order.set_payment_id(dto.payment_id)
                 await uow.order_repo.update(order)
@@ -77,6 +78,7 @@ class ProcessPaymentCallbackUseCase:
             await uow.order_repo.update(order)
 
             # Save outbox event (only if paid)
+            check_paid = False
             if order.status == OrderStatus.PAID:
                 idempotency_key = str(uuid4())
                 event_dto = OrderPaidEventDTO.from_order(order, idempotency_key)
@@ -87,10 +89,19 @@ class ProcessPaymentCallbackUseCase:
                     idempotency_key=idempotency_key,
                 )
                 await uow.outbox_repo.save(outbox_event)
+                check_paid = True
                 logger.info(f"Outbox event saved: {outbox_event.id}")
 
             # Commit and return
             await uow.commit()
+
+            # Send notification
+            if check_paid:
+                await self.notification_service.send_notification(
+                    order.id,
+                    order.user_id,
+                    NotificationType.ORDER_PAID,
+                )
 
             logger.info(f"Order {order.id} updated to {order.status}")
             return OrderResponseDTO.from_domain(order)

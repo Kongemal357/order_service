@@ -3,8 +3,9 @@ import logging
 from src.application.dto.event_dto import OrderCancelledEventDTO, OrderShippedEventDTO
 from src.application.ports.inbox_repository import InboxRepository
 from src.application.ports.uow import UnitOfWork
+from src.application.services.notification_service import NotificationService
 from src.domain.exceptions import OrderNotFoundError
-from src.domain.models import InboxRecord, OrderStatus
+from src.domain.models import InboxRecord, NotificationType, OrderStatus
 from src.infrastructure.messaging.retry_handler import RetryHandler
 
 logger = logging.getLogger(__name__)
@@ -20,9 +21,11 @@ class ProcessShippingEventUseCase:
         self,
         uow_factory: UnitOfWork,
         retry_handler: RetryHandler,
+        notification_service: NotificationService,
     ):
         self.uow_factory = uow_factory
         self.retry_handler = retry_handler
+        self.notification_service = notification_service
 
     @staticmethod
     async def _is_processed(
@@ -59,9 +62,11 @@ class ProcessShippingEventUseCase:
                 if not order:
                     raise OrderNotFoundError(f"Order {event_dto.order_id} not found")
 
+                status_changed = False
                 if order.status == OrderStatus.PAID:
                     order.mark_shipped()
                     await uow.order_repo.update(order)
+                    status_changed = True
                 else:
                     logger.warning(f"Cannot ship order {order.id} with status {order.status}")
 
@@ -74,15 +79,22 @@ class ProcessShippingEventUseCase:
                 await uow.inbox_repo.save(inbox)
                 await uow.commit()
 
+                # Send notification
+                if status_changed:
+                    await self.notification_service.send_notification(
+                        order.id,
+                        order.user_id,
+                        NotificationType.ORDER_SHIPPED,
+                    )
+
             logger.info(f"Order {event_dto.order_id} marked as SHIPPED")
 
         except OrderNotFoundError:
-            # Заказ не найден — не ретраим
             logger.error(f"Order not found: {event_dto.order_id}")
             raise
 
         except Exception as e:
-            # ⚠Retryable error → send to retry topic
+            # Retryable error → send to retry topic
             logger.warning(f"Retryable error processing shipped event: {e}")
 
             await self.retry_handler.send_to_retry(
@@ -122,8 +134,8 @@ class ProcessShippingEventUseCase:
                 status_changed = False
                 if order.status not in (OrderStatus.SHIPPED, OrderStatus.CANCELLED):
                     order.cancel()
-                    status_changed = True
                     await uow.order_repo.update(order)
+                    status_changed = True
                 else:
                     logger.warning(f"Cannot cancel order {order.id} with status {order.status}")
 
@@ -137,6 +149,12 @@ class ProcessShippingEventUseCase:
                 await uow.commit()
 
             if status_changed:
+                # Send notification
+                await self.notification_service.send_notification(
+                    order.id,
+                    order.user_id,
+                    NotificationType.ORDER_CANCELLED,
+                )
                 logger.info(f"Order {event_dto.order_id} marked as CANCELLED")
             else:
                 logger.info(f"Order {event_dto.order_id} already in terminal state, inbox saved")
