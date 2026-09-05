@@ -38,3 +38,7 @@ class PaymentAlreadyProcessedError(DomainError):
     """Raised when a payment callback is received multiple times."""
 
     pass
+
+class NotificationError(DomainError):
+    """Raised when Notification Service returns an error."""
+    pass
