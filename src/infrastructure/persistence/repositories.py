@@ -132,8 +132,8 @@ class SQLAlchemyOutboxRepository(OutboxRepository):
             .limit(limit)
             .with_for_update(skip_locked=True)
         )
-        result = await self.session.execute(stmt)
-        models = result.scalars().all()
+        result = await self.session.scalars(stmt)
+        models = result.all()
 
         return [self._to_domain(m) for m in models]
 
