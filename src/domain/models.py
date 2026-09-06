@@ -25,7 +25,25 @@ class OrderStatus(StrEnum):
     CANCELLED = "CANCELLED"
 
 
+class OutboxStatus(StrEnum):
+    """Status of outbox event."""
+
+    PENDING = "pending"
+    SENT = "sent"
+    FAILED = "failed"
+
+
+class EventType(StrEnum):
+    """Type of event for EventDTO"""
+
+    ORDER_PAID = "order.paid"
+    ORDER_SHIPPED = "order.shipped"
+    ORDER_CANCELLED = "order.cancelled"
+
+
 class NotificationType(StrEnum):
+    """Order status for notification service"""
+
     ORDER_CREATED = "order_created"
     ORDER_PAID = "order_paid"
     ORDER_SHIPPED = "order_shipped"
@@ -48,6 +66,17 @@ class Money:
 
     def __str__(self) -> str:
         return str(self.amount)
+
+
+@dataclass
+class CatalogItem:
+    """Domain representation of a catalog item."""
+
+    id: UUID
+    name: str
+    price: str
+    available_qty: int
+    created_at: datetime
 
 
 @dataclass
@@ -115,25 +144,6 @@ class Order:
         """Set payment ID when payment is created."""
         self.payment_id = payment_id
         self.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
-
-
-@dataclass
-class CatalogItem:
-    """Domain representation of a catalog item."""
-
-    id: UUID
-    name: str
-    price: str
-    available_qty: int
-    created_at: datetime
-
-
-class OutboxStatus(StrEnum):
-    """Status of outbox event."""
-
-    PENDING = "pending"
-    SENT = "sent"
-    FAILED = "failed"
 
 
 @dataclass

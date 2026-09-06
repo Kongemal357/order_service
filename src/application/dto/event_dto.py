@@ -1,14 +1,14 @@
 from dataclasses import dataclass
 from uuid import UUID
 
-from src.domain.models import Order
+from src.domain.models import EventType, Order
 
 
 @dataclass(frozen=True)
 class OrderPaidEventDTO:
     """DTO for ORDER.PAID event."""
 
-    event_type: str = "order.paid"
+    event_type: str = EventType.ORDER_PAID
     order_id: UUID = None
     item_id: UUID = None
     quantity: int = None
@@ -49,7 +49,7 @@ class OrderPaidEventDTO:
 class OrderShippedEventDTO:
     """DTO for ORDER.SHIPPED event."""
 
-    event_type: str = "order.shipped"
+    event_type: str = EventType.ORDER_SHIPPED
     order_id: UUID = None
     item_id: UUID = None
     quantity: int = None
@@ -72,7 +72,7 @@ class OrderShippedEventDTO:
 class OrderCancelledEventDTO:
     """DTO for ORDER.CANCELLED event."""
 
-    event_type: str = "order.cancelled"
+    event_type: str = EventType.ORDER_CANCELLED
     order_id: UUID = None
     item_id: UUID = None
     quantity: int = None
