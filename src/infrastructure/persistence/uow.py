@@ -22,6 +22,11 @@ class _UnitOfWorkImplementation:
         self._order_repo = SQLAlchemyOrderRepository(session)
         self._outbox_repo = SQLAlchemyOutboxRepository(session)
         self._inbox_repo = SQLAlchemyInboxRepository(session)
+        self._committed = False
+
+    @property
+    def is_committed(self) -> bool:
+        return self._committed
 
     @property
     def order_repo(self) -> OrderRepository:
@@ -37,6 +42,7 @@ class _UnitOfWorkImplementation:
 
     async def commit(self) -> None:
         await self._session.commit()
+        self._committed = True
         logger.debug("Transaction committed")
 
     async def rollback(self) -> None:
@@ -54,7 +60,8 @@ class SQLAlchemyUnitOfWork:
             uow = _UnitOfWorkImplementation(session)
             try:
                 yield uow
-                await session.rollback()
+                if not uow.is_committed:
+                    await session.rollback()
             except Exception:
                 await session.rollback()
                 raise
