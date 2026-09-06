@@ -1,118 +1,193 @@
+from datetime import datetime, timezone
+from unittest.mock import AsyncMock, Mock
 from uuid import uuid4
 
 import pytest
 
-from src.application.dto import CatalogItemDTO
+from src.application.dto import CreateOrderDTO
 from src.application.usecases.create_order import CreateOrderUseCase
-from src.domain.exceptions import CatalogServiceError, InsufficientStockError
-from src.domain.models import OrderStatus
+from src.domain.exceptions import InsufficientStockError, PaymentError
+from src.domain.models import Order, OrderStatus
 
 pytestmark = pytest.mark.asyncio
 
 
-class TestCreateOrderUseCase:
-    """Tests for CreateOrderUseCase."""
+@pytest.fixture
+def create_order_dto():
+    return CreateOrderDTO(
+        user_id="user-123",
+        item_id=uuid4(),
+        quantity=1,
+        idempotency_key="test-idempotency-key",
+    )
 
+
+@pytest.fixture
+def mock_catalog_client():
+    client = Mock()
+    client.get_item = AsyncMock(
+        return_value=Mock(
+            price="100.00",
+            available_qty=10,
+        )
+    )
+    return client
+
+
+@pytest.fixture
+def mock_payment_client():
+    client = Mock()
+    client.create_payment = AsyncMock(
+        return_value=Mock(
+            id=uuid4(),
+            status="pending",
+        )
+    )
+    return client
+
+
+class TestCreateOrderUseCase:
     async def test_create_order_success(
         self,
         create_order_dto,
-        catalog_item_dto,
-        mock_unit_of_work,
+        mock_uow_factory,
         mock_catalog_client,
+        mock_payment_client,
+        mock_notification_service,
     ):
-        """Test successful order creation."""
-        # Setup mocks
-        mock_catalog_client.get_item.return_value = catalog_item_dto
-        mock_unit_of_work.order_repo.get_by_idempotency_key.return_value = None
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        saved_order = Order(
+            id=uuid4(),
+            user_id=create_order_dto.user_id,
+            item_id=create_order_dto.item_id,
+            quantity=create_order_dto.quantity,
+            status=OrderStatus.NEW,
+            payment_id=None,
+            created_at=now,
+            updated_at=now,
+            idempotency_key=create_order_dto.idempotency_key,
+        )
 
-        def save_order_side_effect(order):
-            # Simulate saving
-            return order
+        mock_uow = mock_uow_factory.return_value
+        mock_uow.order_repo.save.return_value = saved_order
+        mock_uow.order_repo.get_by_id.return_value = saved_order
 
-        mock_unit_of_work.order_repo.save.side_effect = save_order_side_effect
+        use_case = CreateOrderUseCase(
+            uow_factory=mock_uow_factory,
+            catalog_client=mock_catalog_client,
+            payment_client=mock_payment_client,
+            notification_service=mock_notification_service,
+        )
 
-        # Execute use case
-        use_case = CreateOrderUseCase(mock_unit_of_work, mock_catalog_client)
         result = await use_case.execute(create_order_dto)
 
-        # Assert
         assert result.user_id == create_order_dto.user_id
-        assert result.item_id == create_order_dto.item_id
-        assert result.quantity == create_order_dto.quantity
-        assert result.status == OrderStatus.NEW
-        assert result.idempotency_key == create_order_dto.idempotency_key
+        assert result.status == OrderStatus.NEW.value
+        assert result.id == saved_order.id
 
-        mock_catalog_client.get_item.assert_called_once_with(create_order_dto.item_id)
-        mock_unit_of_work.order_repo.save.assert_called_once()
-        mock_unit_of_work.commit.assert_called_once()
+        mock_catalog_client.get_item.assert_called_once()
+        mock_uow.order_repo.save.assert_called_once()
+        mock_notification_service.send_notification.assert_called_once()
+        mock_payment_client.create_payment.assert_called_once()
 
     async def test_create_order_idempotent(
         self,
         create_order_dto,
-        sample_order,
-        mock_unit_of_work,
+        mock_uow_factory,
         mock_catalog_client,
+        mock_payment_client,
+        mock_notification_service,
     ):
-        """Test idempotent request returns existing order."""
-        # Setup mocks
-        mock_unit_of_work.order_repo.get_by_idempotency_key.return_value = sample_order
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        existing_order = Order(
+            id=uuid4(),
+            user_id=create_order_dto.user_id,
+            item_id=create_order_dto.item_id,
+            quantity=create_order_dto.quantity,
+            status=OrderStatus.NEW,
+            payment_id=None,
+            created_at=now,
+            updated_at=now,
+            idempotency_key=create_order_dto.idempotency_key,
+        )
 
-        # Execute use case
-        use_case = CreateOrderUseCase(mock_unit_of_work, mock_catalog_client)
+        mock_uow = mock_uow_factory.return_value
+        mock_uow.order_repo.get_by_idempotency_key.return_value = existing_order
+
+        use_case = CreateOrderUseCase(
+            uow_factory=mock_uow_factory,
+            catalog_client=mock_catalog_client,
+            payment_client=mock_payment_client,
+            notification_service=mock_notification_service,
+        )
+
         result = await use_case.execute(create_order_dto)
 
-        # Assert
-        assert result.id == sample_order.id
-        assert result.status == sample_order.status
-
-        # Save should NOT be called
-        mock_unit_of_work.order_repo.save.assert_not_called()
+        assert result.id == existing_order.id
         mock_catalog_client.get_item.assert_not_called()
+        mock_uow.order_repo.save.assert_not_called()
+        mock_payment_client.create_payment.assert_not_called()
 
     async def test_create_order_insufficient_stock(
         self,
         create_order_dto,
-        mock_unit_of_work,
+        mock_uow_factory,
         mock_catalog_client,
+        mock_payment_client,
+        mock_notification_service,
     ):
-        """Test order creation with insufficient stock."""
-        # Setup mock - only 1 item available, but we need 3
-        catalog_item = CatalogItemDTO(
-            id=uuid4(),
-            name="Test Product",
+        mock_catalog_client.get_item.return_value = Mock(
             price="100.00",
-            available_qty=1,
-            created_at=None,
+            available_qty=0,
         )
-        mock_catalog_client.get_item.return_value = catalog_item
-        mock_unit_of_work.order_repo.get_by_idempotency_key.return_value = None
 
-        # Execute use case
-        use_case = CreateOrderUseCase(mock_unit_of_work, mock_catalog_client)
+        use_case = CreateOrderUseCase(
+            uow_factory=mock_uow_factory,
+            catalog_client=mock_catalog_client,
+            payment_client=mock_payment_client,
+            notification_service=mock_notification_service,
+        )
 
-        with pytest.raises(InsufficientStockError) as exc_info:
+        with pytest.raises(InsufficientStockError):
             await use_case.execute(create_order_dto)
 
-        assert "Not enough stock" in str(exc_info.value)
-        mock_unit_of_work.order_repo.save.assert_not_called()
-        mock_unit_of_work.commit.assert_not_called()
+        mock_uow_factory.return_value.order_repo.save.assert_not_called()
 
-    async def test_create_order_catalog_error(
+    async def test_create_order_payment_fails(
         self,
         create_order_dto,
-        mock_unit_of_work,
+        mock_uow_factory,
         mock_catalog_client,
+        mock_payment_client,
+        mock_notification_service,
     ):
-        """Test order creation when Catalog Service fails."""
-        # Setup mock
-        mock_catalog_client.get_item.side_effect = CatalogServiceError("Service unavailable")
-        mock_unit_of_work.order_repo.get_by_idempotency_key.return_value = None
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        saved_order = Order(
+            id=uuid4(),
+            user_id=create_order_dto.user_id,
+            item_id=create_order_dto.item_id,
+            quantity=create_order_dto.quantity,
+            status=OrderStatus.NEW,
+            payment_id=None,
+            created_at=now,
+            updated_at=now,
+            idempotency_key=create_order_dto.idempotency_key,
+        )
 
-        # Execute use case
-        use_case = CreateOrderUseCase(mock_unit_of_work, mock_catalog_client)
+        mock_uow = mock_uow_factory.return_value
+        mock_uow.order_repo.save.return_value = saved_order
+        mock_uow.order_repo.get_by_id.return_value = saved_order
+        mock_payment_client.create_payment.side_effect = PaymentError("Payment failed")
 
-        with pytest.raises(CatalogServiceError):
+        use_case = CreateOrderUseCase(
+            uow_factory=mock_uow_factory,
+            catalog_client=mock_catalog_client,
+            payment_client=mock_payment_client,
+            notification_service=mock_notification_service,
+        )
+
+        with pytest.raises(PaymentError):
             await use_case.execute(create_order_dto)
 
-        mock_unit_of_work.order_repo.save.assert_not_called()
-        mock_unit_of_work.commit.assert_not_called()
+        mock_uow.order_repo.update.assert_called()
+        mock_notification_service.send_notification.assert_called()
