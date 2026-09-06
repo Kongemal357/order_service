@@ -52,11 +52,11 @@ class Settings(BaseSettings):
     PORT: int = 8000
 
     # Database
-    POSTGRES_DATABASE_NAME: str
-    POSTGRES_HOST: str
-    POSTGRES_PORT: int
-    POSTGRES_USERNAME: str
-    POSTGRES_PASSWORD: str
+    POSTGRES_DATABASE_NAME: str = "order_service"
+    POSTGRES_HOST: str = "localhost"
+    POSTGRES_PORT: int = 5432
+    POSTGRES_USERNAME: str = "postgres"
+    POSTGRES_PASSWORD: str = "postgres"
 
     # Capashino Services
     CAPASHINO_BASE_URL: str = ""
