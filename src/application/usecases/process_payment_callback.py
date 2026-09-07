@@ -93,7 +93,6 @@ class ProcessPaymentCallbackUseCase:
                 logger.info(f"Outbox event saved: {outbox_event.id}")
 
             # Commit and return
-            await uow.session.flush()
             await uow.commit()
 
             # Send notification
