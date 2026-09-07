@@ -7,7 +7,7 @@ from src.application.dto.payment_dto import PaymentCallbackDTO
 from src.application.ports.uow import UnitOfWork
 from src.application.services.notification_service import NotificationService
 from src.domain.exceptions import DomainError, OrderNotFoundError
-from src.domain.models import NotificationType, OrderStatus, OutboxEvent, PaymentStatus
+from src.domain.models import EventType, NotificationType, OrderStatus, OutboxEvent, PaymentStatus
 
 logger = logging.getLogger(__name__)
 
@@ -84,7 +84,7 @@ class ProcessPaymentCallbackUseCase:
                 event_dto = OrderPaidEventDTO.from_order(order, idempotency_key)
 
                 outbox_event = OutboxEvent.create(
-                    event_type="order.paid",
+                    event_type=EventType.ORDER_PAID,
                     payload=event_dto.to_dict(),
                     idempotency_key=idempotency_key,
                 )
