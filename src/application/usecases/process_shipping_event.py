@@ -5,7 +5,7 @@ from src.application.ports.inbox_repository import InboxRepository
 from src.application.ports.uow import UnitOfWork
 from src.application.services.notification_service import NotificationService
 from src.domain.exceptions import OrderNotFoundError
-from src.domain.models import InboxRecord, NotificationType, OrderStatus
+from src.domain.models import EventType, InboxRecord, NotificationType, OrderStatus
 from src.infrastructure.messaging.retry_handler import RetryHandler
 
 logger = logging.getLogger(__name__)
@@ -48,7 +48,7 @@ class ProcessShippingEventUseCase:
         If processing fails with a retryable error, sends to retry topic.
         """
         logger.info(
-            f"Processing order.shipped event: order={event_dto.order_id}, "
+            f"Processing {event_dto.event_type} event: order={event_dto.order_id}, "
             f"shipment={event_dto.shipment_id}"
         )
         try:
@@ -74,7 +74,7 @@ class ProcessShippingEventUseCase:
                 inbox = InboxRecord.create(
                     event_id=str(event_dto.shipment_id),
                     idempotency_key=event_dto.idempotency_key,
-                    event_type="order.shipped",
+                    event_type=EventType.ORDER_SHIPPED,
                 )
                 await uow.inbox_repo.save(inbox)
                 await uow.commit()
@@ -99,7 +99,7 @@ class ProcessShippingEventUseCase:
 
             await self.retry_handler.send_to_retry(
                 event_data={
-                    "event_type": "order.shipped",
+                    "event_type": EventType.ORDER_SHIPPED,
                     "order_id": str(event_dto.order_id),
                     "item_id": str(event_dto.item_id),
                     "quantity": event_dto.quantity,
@@ -143,7 +143,7 @@ class ProcessShippingEventUseCase:
                 inbox = InboxRecord.create(
                     event_id=str(event_dto.order_id),
                     idempotency_key=event_dto.idempotency_key,
-                    event_type="order.cancelled",
+                    event_type=EventType.ORDER_CANCELLED,
                 )
                 await uow.inbox_repo.save(inbox)
                 await uow.commit()
@@ -168,7 +168,7 @@ class ProcessShippingEventUseCase:
 
             await self.retry_handler.send_to_retry(
                 event_data={
-                    "event_type": "order.cancelled",
+                    "event_type": EventType.ORDER_CANCELLED,
                     "order_id": str(event_dto.order_id),
                     "item_id": str(event_dto.item_id),
                     "quantity": event_dto.quantity,
