@@ -192,7 +192,7 @@ class InboxRecord:
     id: UUID
     event_id: str
     idempotency_key: str
-    event_type: str
+    event_type: EventType
     processed_at: datetime
 
     @classmethod
@@ -200,7 +200,7 @@ class InboxRecord:
         cls,
         event_id: str,
         idempotency_key: str,
-        event_type: str,
+        event_type: EventType,
     ) -> "InboxRecord":
         return cls(
             id=uuid4(),
