@@ -1,6 +1,5 @@
 import logging
 from decimal import Decimal
-from urllib.parse import urljoin
 from uuid import uuid4
 
 from src.application.dto import CreateOrderDTO, OrderResponseDTO
@@ -14,7 +13,6 @@ from src.domain.exceptions import (
     PaymentError,
 )
 from src.domain.models import NotificationType, Order, OrderStatus
-from src.settings import settings
 
 logger = logging.getLogger(__name__)
 
@@ -30,11 +28,13 @@ class CreateOrderUseCase:
         catalog_client: CatalogClient,
         payment_client: PaymentClient,
         notification_service: NotificationService,
+        payment_callback_url: str,
     ):
         self.uow_factory = uow_factory
         self.catalog_client = catalog_client
         self.payment_client = payment_client
         self.notification_service = notification_service
+        self.payment_callback_url = payment_callback_url
 
     async def execute(self, dto: CreateOrderDTO) -> OrderResponseDTO:
         logger.info(f"Creating order: user={dto.user_id}, item={dto.item_id}")
@@ -80,11 +80,10 @@ class CreateOrderUseCase:
 
         # Create payment
         try:
-            callback_url = urljoin(settings.INTERNAL_HOSTNAME, "/api/orders/payment-callback")
             payment_dto = CreatePaymentDTO(
                 order_id=order.id,
                 amount=order.total_amount.amount,
-                callback_url=callback_url,
+                callback_url=self.payment_callback_url,
                 idempotency_key=str(uuid4()),
             )
 

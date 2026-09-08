@@ -1,4 +1,8 @@
+from urllib.parse import urljoin
+
 from pydantic_settings import BaseSettings
+
+from src.constants import Routes
 
 
 class KafkaSettings(BaseSettings):
@@ -66,6 +70,11 @@ class Settings(BaseSettings):
     @property
     def DATABASE_URL(self) -> str:
         return f"postgresql+asyncpg://{self.POSTGRES_USERNAME}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DATABASE_NAME}"
+
+    @property
+    def PAYMENT_CALLBACK_URL(self) -> str:
+        """Full callback URL for Payment Service."""
+        return urljoin(self.INTERNAL_HOSTNAME, Routes.PAYMENT_CALLBACK)
 
     class Config:
         env_file = ".env"

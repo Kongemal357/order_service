@@ -15,6 +15,7 @@ from src.infrastructure.messaging.retry_consumer import RetryConsumer
 from src.infrastructure.messaging.retry_handler import RetryHandler
 from src.infrastructure.persistence.database import AsyncSessionLocal
 from src.infrastructure.persistence.uow import SQLAlchemyUnitOfWork
+from src.settings import settings
 
 # ============ Database Dependencies ============
 
@@ -90,7 +91,13 @@ async def get_create_order_use_case(
     """
     Dependency for create order use case.
     """
-    return CreateOrderUseCase(uow_factory, catalog_client, payment_client, notification_service)
+    return CreateOrderUseCase(
+        uow_factory=uow_factory,
+        catalog_client=catalog_client,
+        payment_client=payment_client,
+        notification_service=notification_service,
+        payment_callback_url=settings.PAYMENT_CALLBACK_URL,
+    )
 
 
 async def get_get_order_use_case(
