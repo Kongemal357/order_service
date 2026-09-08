@@ -47,6 +47,8 @@ def mock_payment_client():
 
 
 class TestCreateOrderUseCase:
+    test_callback_url = "http://test-service:8000/api/orders/payment-callback"
+
     async def test_create_order_success(
         self,
         create_order_dto,
@@ -77,6 +79,7 @@ class TestCreateOrderUseCase:
             catalog_client=mock_catalog_client,
             payment_client=mock_payment_client,
             notification_service=mock_notification_service,
+            payment_callback_url=self.test_callback_url,
         )
 
         result = await use_case.execute(create_order_dto)
@@ -119,6 +122,7 @@ class TestCreateOrderUseCase:
             catalog_client=mock_catalog_client,
             payment_client=mock_payment_client,
             notification_service=mock_notification_service,
+            payment_callback_url=self.test_callback_url,
         )
 
         result = await use_case.execute(create_order_dto)
@@ -146,6 +150,7 @@ class TestCreateOrderUseCase:
             catalog_client=mock_catalog_client,
             payment_client=mock_payment_client,
             notification_service=mock_notification_service,
+            payment_callback_url=self.test_callback_url,
         )
 
         with pytest.raises(InsufficientStockError):
@@ -184,6 +189,7 @@ class TestCreateOrderUseCase:
             catalog_client=mock_catalog_client,
             payment_client=mock_payment_client,
             notification_service=mock_notification_service,
+            payment_callback_url=self.test_callback_url,
         )
 
         with pytest.raises(PaymentError):
