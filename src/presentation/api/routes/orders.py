@@ -6,6 +6,7 @@ from src.application.usecases import CreateOrderUseCase, GetOrderUseCase
 from src.application.usecases.process_payment_callback import ProcessPaymentCallbackUseCase
 from src.domain.exceptions import (
     CatalogServiceError,
+    DomainError,
     InsufficientStockError,
     OrderAlreadyExistsError,
     OrderNotFoundError,
@@ -104,6 +105,12 @@ async def payment_callback(
     except OrderNotFoundError as e:
         logger.warning(f"Order not found: {e}")
         return {"status": "error", "message": str(e)}
+    except DomainError as e:
+        logger.warning(f"Domain error processing payment callback: {e}")
+        return {
+            "status": "error",
+            "message": str(e),
+        }
     except Exception as e:
         logger.exception(f"Error processing payment callback: {e}")
         return {"status": "error", "message": "Internal server error"}
