@@ -8,7 +8,7 @@ from src.domain.models import EventType, Order
 class OrderPaidEventDTO:
     """DTO for ORDER.PAID event."""
 
-    event_type: str = EventType.ORDER_PAID
+    event_type: EventType = EventType.ORDER_PAID
     order_id: UUID = None
     item_id: UUID = None
     quantity: int = None
@@ -49,7 +49,7 @@ class OrderPaidEventDTO:
 class OrderShippedEventDTO:
     """DTO for ORDER.SHIPPED event."""
 
-    event_type: str = EventType.ORDER_SHIPPED
+    event_type: EventType = EventType.ORDER_SHIPPED.value
     order_id: UUID = None
     item_id: UUID = None
     quantity: int = None
@@ -72,7 +72,7 @@ class OrderShippedEventDTO:
 class OrderCancelledEventDTO:
     """DTO for ORDER.CANCELLED event."""
 
-    event_type: str = EventType.ORDER_CANCELLED
+    event_type: EventType = EventType.ORDER_CANCELLED.value
     order_id: UUID = None
     item_id: UUID = None
     quantity: int = None
