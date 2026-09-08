@@ -98,14 +98,7 @@ class ProcessShippingEventUseCase:
             logger.warning(f"Retryable error processing shipped event: {e}")
 
             await self.retry_handler.send_to_retry(
-                event_data={
-                    "event_type": EventType.ORDER_SHIPPED,
-                    "order_id": str(event_dto.order_id),
-                    "item_id": str(event_dto.item_id),
-                    "quantity": event_dto.quantity,
-                    "shipment_id": str(event_dto.shipment_id),
-                    "idempotency_key": event_dto.idempotency_key,
-                },
+                event_data=event_dto.to_dict(),
                 retry_count=retry_count + 1,
                 error=str(e),
             )
@@ -167,14 +160,7 @@ class ProcessShippingEventUseCase:
             logger.warning(f"Retryable error processing cancelled event: {e}")
 
             await self.retry_handler.send_to_retry(
-                event_data={
-                    "event_type": EventType.ORDER_CANCELLED,
-                    "order_id": str(event_dto.order_id),
-                    "item_id": str(event_dto.item_id),
-                    "quantity": event_dto.quantity,
-                    "reason": event_dto.reason,
-                    "idempotency_key": event_dto.idempotency_key,
-                },
+                event_data=event_dto.to_dict(),
                 retry_count=retry_count + 1,
                 error=str(e),
             )
