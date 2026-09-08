@@ -49,12 +49,23 @@ class OrderPaidEventDTO:
 class OrderShippedEventDTO:
     """DTO for ORDER.SHIPPED event."""
 
-    event_type: EventType = EventType.ORDER_SHIPPED.value
+    event_type: EventType = EventType.ORDER_SHIPPED
     order_id: UUID = None
     item_id: UUID = None
     quantity: int = None
     shipment_id: UUID = None
     idempotency_key: str = None
+
+    def to_dict(self) -> dict:
+        """Convert to dictionary for Kafka."""
+        return {
+            "event_type": self.event_type,
+            "order_id": str(self.order_id),
+            "item_id": str(self.item_id),
+            "quantity": self.quantity,
+            "shipment_id": self.shipment_id,
+            "idempotency_key": self.idempotency_key,
+        }
 
     @classmethod
     def from_dict(cls, data: dict) -> "OrderShippedEventDTO":
@@ -72,12 +83,23 @@ class OrderShippedEventDTO:
 class OrderCancelledEventDTO:
     """DTO for ORDER.CANCELLED event."""
 
-    event_type: EventType = EventType.ORDER_CANCELLED.value
+    event_type: EventType = EventType.ORDER_CANCELLED
     order_id: UUID = None
     item_id: UUID = None
     quantity: int = None
     reason: str = None
     idempotency_key: str = None
+
+    def to_dict(self) -> dict:
+        """Convert to dictionary for Kafka."""
+        return {
+            "event_type": self.event_type,
+            "order_id": str(self.order_id),
+            "item_id": str(self.item_id),
+            "quantity": self.quantity,
+            "reason": self.reason,
+            "idempotency_key": self.idempotency_key,
+        }
 
     @classmethod
     def from_dict(cls, data: dict) -> "OrderCancelledEventDTO":
