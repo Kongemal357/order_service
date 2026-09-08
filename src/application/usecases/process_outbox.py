@@ -46,11 +46,7 @@ class ProcessOutboxUseCase:
                     # Publish event to Kafka
                     await producer.send(
                         topic=self._topic,
-                        value={
-                            "event_type": event.event_type,
-                            "payload": event.payload,
-                            "idempotency_key": event.idempotency_key,
-                        },
+                        value=event.payload,
                         key=str(event.id),
                     )
                     sent_ids.append(event.id)
