@@ -4,7 +4,7 @@ from uuid import uuid4
 
 from src.application.dto import CreateOrderDTO, OrderResponseDTO
 from src.application.dto.payment_dto import CreatePaymentDTO
-from src.application.ports import CatalogClient, UnitOfWork
+from src.application.ports import CatalogClient, UnitOfWorkFactory
 from src.application.ports.payment_client import PaymentClient
 from src.application.services.notification_service import NotificationService
 from src.domain.exceptions import (
@@ -24,7 +24,7 @@ class CreateOrderUseCase:
 
     def __init__(
         self,
-        uow_factory: UnitOfWork,
+        uow_factory: UnitOfWorkFactory,
         catalog_client: CatalogClient,
         payment_client: PaymentClient,
         notification_service: NotificationService,

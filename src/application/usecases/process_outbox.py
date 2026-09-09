@@ -1,6 +1,6 @@
 import logging
 
-from src.application.ports import UnitOfWork
+from src.application.ports import UnitOfWorkFactory
 from src.infrastructure.messaging.kafka_producer import KafkaProducer
 from src.settings import kafka_settings
 
@@ -15,7 +15,7 @@ class ProcessOutboxUseCase:
 
     def __init__(
         self,
-        uow_factory: UnitOfWork,
+        uow_factory: UnitOfWorkFactory,
         kafka_producer: KafkaProducer,
         topic: str | None = None,
     ):

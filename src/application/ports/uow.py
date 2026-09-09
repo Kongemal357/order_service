@@ -6,13 +6,9 @@ from .outbox_repository import OutboxRepository
 from .repositories import OrderRepository
 
 
-class UnitOfWork(ABC):
-    @abstractmethod
-    async def __call__(self) -> AsyncContextManager:
-        pass
+class UnitOfWork(Protocol):
+    """Unit of Work interface - represents a transaction."""
 
-
-class UnitOfWorkImpl(Protocol):
     order_repo: OrderRepository
     outbox_repo: OutboxRepository
     inbox_repo: InboxRepository
@@ -20,3 +16,12 @@ class UnitOfWorkImpl(Protocol):
     async def commit(self) -> None: ...
 
     async def rollback(self) -> None: ...
+
+
+class UnitOfWorkFactory(ABC):
+    """Factory interface for creating Unit of Work instances."""
+
+    @abstractmethod
+    async def __call__(self) -> AsyncContextManager[UnitOfWork]:
+        """Create and return a UnitOfWork context manager."""
+        pass

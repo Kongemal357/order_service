@@ -4,7 +4,7 @@ from uuid import uuid4
 from src.application.dto.event_dto import OrderPaidEventDTO
 from src.application.dto.order_dto import OrderResponseDTO
 from src.application.dto.payment_dto import PaymentCallbackDTO
-from src.application.ports.uow import UnitOfWork
+from src.application.ports.uow import UnitOfWorkFactory
 from src.application.services.notification_service import NotificationService
 from src.domain.exceptions import DomainError, OrderNotFoundError
 from src.domain.models import EventType, NotificationType, OrderStatus, OutboxEvent, PaymentStatus
@@ -20,7 +20,7 @@ class ProcessPaymentCallbackUseCase:
 
     def __init__(
         self,
-        uow_factory: UnitOfWork,
+        uow_factory: UnitOfWorkFactory,
         notification_service: NotificationService,
     ):
         self.uow_factory = uow_factory

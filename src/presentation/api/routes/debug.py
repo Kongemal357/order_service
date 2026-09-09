@@ -4,7 +4,7 @@ from uuid import UUID
 from sqlalchemy import select, text
 
 from fastapi import APIRouter, Depends
-from src.application.ports.uow import UnitOfWork
+from src.application.ports.uow import UnitOfWorkFactory
 from src.infrastructure.persistence.models import OutboxModel
 from src.presentation.api.dependencies import get_uow_factory
 
@@ -16,7 +16,7 @@ debug_router = APIRouter(prefix="/debug", tags=["debug"])
 @debug_router.get("/outbox")
 async def debug_outbox(
     limit: int = 20,
-    uow_factory: UnitOfWork = Depends(get_uow_factory),
+    uow_factory: UnitOfWorkFactory = Depends(get_uow_factory),
 ) -> dict:
     """
     Диагностика: просмотр последних записей в outbox.
@@ -45,7 +45,7 @@ async def debug_outbox(
 
 @debug_router.get("/outbox/pending")
 async def debug_outbox_pending(
-    uow_factory: UnitOfWork = Depends(get_uow_factory),
+    uow_factory: UnitOfWorkFactory = Depends(get_uow_factory),
 ) -> dict:
     """
     Диагностика: просмотр pending событий в outbox.
@@ -76,7 +76,7 @@ async def debug_outbox_pending(
 
 @debug_router.get("/outbox/failed")
 async def debug_outbox_failed(
-    uow_factory: UnitOfWork = Depends(get_uow_factory),
+    uow_factory: UnitOfWorkFactory = Depends(get_uow_factory),
 ) -> dict:
     """
     Диагностика: просмотр failed событий в outbox.
@@ -108,7 +108,7 @@ async def debug_outbox_failed(
 @debug_router.get("/order/{order_id}")
 async def debug_order(
     order_id: UUID,
-    uow_factory: UnitOfWork = Depends(get_uow_factory),
+    uow_factory: UnitOfWorkFactory = Depends(get_uow_factory),
 ) -> dict:
     """
     Диагностика: просмотр заказа по ID.
@@ -134,7 +134,7 @@ async def debug_order(
 @debug_router.get("/inbox")
 async def debug_inbox(
     limit: int = 20,
-    uow_factory: UnitOfWork = Depends(get_uow_factory),
+    uow_factory: UnitOfWorkFactory = Depends(get_uow_factory),
 ) -> dict:
     """
     Диагностика: просмотр последних записей в inbox.

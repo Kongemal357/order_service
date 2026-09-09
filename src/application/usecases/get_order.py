@@ -2,7 +2,7 @@ import logging
 from uuid import UUID
 
 from src.application.dto import OrderResponseDTO
-from src.application.ports import UnitOfWork
+from src.application.ports import UnitOfWorkFactory
 from src.domain.exceptions import OrderNotFoundError
 
 logger = logging.getLogger(__name__)
@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 class GetOrderUseCase:
     """Use case for retrieving an order by ID."""
 
-    def __init__(self, uow_factory: UnitOfWork):
+    def __init__(self, uow_factory: UnitOfWorkFactory):
         self.uow_factory = uow_factory
 
     async def execute(self, order_id: UUID) -> OrderResponseDTO:
