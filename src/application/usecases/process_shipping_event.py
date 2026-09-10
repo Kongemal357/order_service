@@ -58,17 +58,15 @@ class ProcessShippingEventUseCase:
             logger.warning(f"Cannot cancel order {order.id} with status {order.status}")
             return False
 
-    async def send_notifications(self, order_id: UUID, user_id: str, event_type: EventType) -> None:
+    async def send_notifications(self, order_id: UUID, event_type: EventType) -> None:
         """Send notification after transaction."""
         if event_type == EventType.ORDER_SHIPPED:
             await self.notification_service.send_notification(
                 order_id,
-                user_id,
                 NotificationType.ORDER_SHIPPED,
             )
         elif event_type == EventType.ORDER_CANCELLED:
             await self.notification_service.send_notification(
                 order_id,
-                user_id,
                 NotificationType.ORDER_CANCELLED,
             )

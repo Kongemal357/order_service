@@ -3,12 +3,10 @@ from datetime import datetime, timezone
 from typing import List, Optional
 from uuid import UUID
 
-from sqlalchemy import cast, select, update
-from sqlalchemy.dialects.postgresql import UUID as PG_UUID
+from sqlalchemy import select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.application.dto.inbox_dto import InboxWithUserDTO
 from src.application.ports.inbox_repository import InboxRepository
 from src.application.ports.outbox_repository import OutboxRepository
 from src.application.ports.repositories import OrderRepository
@@ -221,29 +219,21 @@ class SQLAlchemyInboxRepository(InboxRepository):
             return self._to_domain(model)
         return None
 
-    async def get_pending_with_user(self, limit: int = 100) -> List[InboxWithUserDTO]:
+    async def get_pending(self, limit: int = 100) -> List[InboxRecord]:
         """Get pending inbox records with user_id from joined orders."""
-        order_id_text = InboxModel.payload["order_id"].as_string()
 
         stmt = (
-            select(InboxModel, OrderModel.user_id)
-            .join(OrderModel, OrderModel.id == cast(order_id_text, PG_UUID))
+            select(InboxModel)
             .where(InboxModel.status == InboxStatus.PENDING.value)
             .order_by(InboxModel.created_at)
             .limit(limit)
-            .with_for_update(of=InboxModel, skip_locked=True)
+            .with_for_update(skip_locked=True)
         )
 
-        result = await self.session.execute(stmt)
-        rows = result.all()
+        result = await self.session.scalars(stmt)
+        models = result.all()
 
-        return [
-            InboxWithUserDTO.from_model(
-                inbox_model=row[0],
-                user_id=row[1],
-            )
-            for row in rows
-        ]
+        return [self._to_domain(m) for m in models]
 
     async def mark_processed(self, record_id: UUID) -> None:
         """Mark inbox record as processed."""

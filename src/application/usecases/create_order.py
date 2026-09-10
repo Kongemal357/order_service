@@ -74,7 +74,6 @@ class CreateOrderUseCase:
         # Send notification
         await self.notification_service.send_notification(
             order.id,
-            order.user_id,
             NotificationType.ORDER_CREATED,
         )
 
@@ -105,7 +104,6 @@ class CreateOrderUseCase:
             # Send notification
             await self.notification_service.send_notification(
                 order.id,
-                order.user_id,
                 NotificationType.ORDER_CANCELLED,
             )
             raise

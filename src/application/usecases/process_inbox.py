@@ -28,7 +28,7 @@ class ProcessInboxUseCase:
         processed_events = 0
 
         async with self.uow_factory() as uow:
-            events = await uow.inbox_repo.get_pending_with_user(limit)
+            events = await uow.inbox_repo.get_pending(limit)
 
         if not events:
             logger.debug("No pending inbox events")
@@ -67,7 +67,6 @@ class ProcessInboxUseCase:
                 if use_case_result:
                     await self.shipping_use_case.send_notifications(
                         order_id=event.payload["order_id"],
-                        user_id=event.user_id,
                         event_type=event.event_type,
                     )
             except Exception as e:

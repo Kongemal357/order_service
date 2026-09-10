@@ -17,7 +17,7 @@ class InboxRepository(ABC):
         pass
 
     @abstractmethod
-    async def get_pending_with_user(self, limit: int = 100) -> List[InboxRecord]:
+    async def get_pending(self, limit: int = 100) -> List[InboxRecord]:
         pass
 
     @abstractmethod

@@ -1,4 +1,5 @@
 import logging
+import uuid
 from uuid import UUID
 
 from src.application.dto.notification_dto import SendNotificationDTO
@@ -29,7 +30,6 @@ class NotificationService:
     async def send_notification(
         self,
         order_id: UUID,
-        user_id: str,
         notification_type: NotificationType,
     ) -> None:
         message = self._MESSAGES.get(notification_type)
@@ -37,11 +37,10 @@ class NotificationService:
             logger.warning(f"Unknown notification type: {notification_type}")
             return
 
-        idempotency_key = f"{notification_type.value}_{order_id}"
+        idempotency_key = uuid.uuid4()
 
         try:
             dto = SendNotificationDTO(
-                user_id=user_id,
                 message=message,
                 reference_id=order_id,
                 idempotency_key=idempotency_key,

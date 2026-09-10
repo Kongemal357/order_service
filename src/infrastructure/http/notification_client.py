@@ -29,7 +29,7 @@ class NotificationHTTPClient(NotificationClientPort):
         payload = {
             "message": dto.message,
             "reference_id": str(dto.reference_id),
-            "idempotency_key": dto.idempotency_key,
+            "idempotency_key": str(dto.idempotency_key),
         }
 
         logger.debug(
