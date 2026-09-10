@@ -41,6 +41,13 @@ class EventType(StrEnum):
     ORDER_CANCELLED = "order.cancelled"
 
 
+class InboxStatus(StrEnum):
+    """Status of inbox record."""
+
+    PENDING = "pending"
+    PROCESSED = "processed"
+
+
 class NotificationType(StrEnum):
     """Order status for notification service"""
 
@@ -191,21 +198,31 @@ class InboxRecord:
 
     id: UUID
     event_id: str
-    idempotency_key: str
     event_type: EventType
-    processed_at: datetime
+    payload: dict[str, Any]
+    status: InboxStatus
+    processed_at: datetime | None = None
+    created_at: datetime | None = None
 
     @classmethod
     def create(
         cls,
         event_id: str,
-        idempotency_key: str,
         event_type: EventType,
+        payload: dict[str, Any],
     ) -> "InboxRecord":
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
         return cls(
             id=uuid4(),
             event_id=event_id,
-            idempotency_key=idempotency_key,
             event_type=event_type,
-            processed_at=datetime.now(timezone.utc).replace(tzinfo=None),
+            payload=payload,
+            status=InboxStatus.PENDING,
+            processed_at=None,
+            created_at=now,
         )
+
+    def mark_processed(self) -> None:
+        """Mark record as processed."""
+        self.status = InboxStatus.PROCESSED
+        self.processed_at = datetime.now(timezone.utc).replace(tzinfo=None)
