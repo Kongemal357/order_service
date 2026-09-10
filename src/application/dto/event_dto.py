@@ -54,7 +54,6 @@ class OrderShippedEventDTO:
     item_id: UUID = None
     quantity: int = None
     shipment_id: UUID = None
-    idempotency_key: str = None
 
     def to_dict(self) -> dict:
         """Convert to dictionary for Kafka."""
@@ -64,7 +63,6 @@ class OrderShippedEventDTO:
             "item_id": str(self.item_id),
             "quantity": self.quantity,
             "shipment_id": self.shipment_id,
-            "idempotency_key": self.idempotency_key,
         }
 
     @classmethod
@@ -75,7 +73,18 @@ class OrderShippedEventDTO:
             item_id=UUID(data["item_id"]),
             quantity=data["quantity"],
             shipment_id=UUID(data["shipment_id"]),
-            idempotency_key=data.get("idempotency_key"),
+        )
+
+    @classmethod
+    def from_payload(cls, payload: dict) -> "OrderShippedEventDTO":
+        """
+        Create DTO from inbox/outbox payload.
+        """
+        return cls(
+            order_id=UUID(payload["order_id"]),
+            item_id=UUID(payload["item_id"]),
+            quantity=payload["quantity"],
+            shipment_id=UUID(payload["shipment_id"]),
         )
 
 
@@ -88,7 +97,6 @@ class OrderCancelledEventDTO:
     item_id: UUID = None
     quantity: int = None
     reason: str = None
-    idempotency_key: str = None
 
     def to_dict(self) -> dict:
         """Convert to dictionary for Kafka."""
@@ -98,7 +106,6 @@ class OrderCancelledEventDTO:
             "item_id": str(self.item_id),
             "quantity": self.quantity,
             "reason": self.reason,
-            "idempotency_key": self.idempotency_key,
         }
 
     @classmethod
@@ -109,5 +116,16 @@ class OrderCancelledEventDTO:
             item_id=UUID(data["item_id"]),
             quantity=data["quantity"],
             reason=data.get("reason", "No reason provided"),
-            idempotency_key=data.get("idempotency_key"),
+        )
+
+    @classmethod
+    def from_payload(cls, payload: dict) -> "OrderCancelledEventDTO":
+        """
+        Create DTO from inbox/outbox payload.
+        """
+        return cls(
+            order_id=UUID(payload["order_id"]),
+            item_id=UUID(payload["item_id"]),
+            quantity=payload["quantity"],
+            reason=payload.get("reason", "No reason provided"),
         )
