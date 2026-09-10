@@ -32,6 +32,7 @@ def run_migrations():
         from alembic import command
 
         alembic_cfg = Config("alembic.ini")
+        command.downgrade(alembic_cfg, "ff6bdd83cbeb")
         command.upgrade(alembic_cfg, "head")
         logger.info("Migrations applied successfully")
     except ImportError:
