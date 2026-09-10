@@ -1,9 +1,11 @@
 from datetime import datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import JSON, DateTime, String, func
+from sqlalchemy import JSON, DateTime, Index, String, func
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+
+from src.domain.models import InboxStatus
 
 
 class Base(DeclarativeBase):
@@ -50,11 +52,19 @@ class InboxModel(Base):
     __tablename__ = "inbox"
 
     id: Mapped[UUID] = mapped_column(PGUUID, primary_key=True, default=uuid4)
-    event_id: Mapped[str] = mapped_column(String(255), nullable=False)
-    idempotency_key: Mapped[str] = mapped_column(
+    event_id: Mapped[str] = mapped_column(
         String(255),
         unique=True,
         nullable=False,
     )
     event_type: Mapped[str] = mapped_column(String(100), nullable=False)
-    processed_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    payload: Mapped[dict] = mapped_column(JSON, nullable=False)
+    status: Mapped[str] = mapped_column(String(50), nullable=False, default=InboxStatus.PENDING)
+    processed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    __table_args__ = (
+        Index("ix_inbox_event_id", "event_id"),
+        Index("ix_inbox_status", "status"),
+        Index("ix_inbox_created_at", "created_at"),
+    )
