@@ -22,7 +22,6 @@ from src.presentation.api.dependencies import (
     get_save_inbox_event_use_case,
     get_uow_factory,
 )
-from src.presentation.api.routes.debug import debug_router
 from src.presentation.api.routes.orders import router
 from src.settings import settings
 
@@ -160,7 +159,6 @@ def create_app() -> FastAPI:
     )
 
     app.include_router(router)
-    app.include_router(debug_router)
 
     @app.get("/health")
     async def health_check():
