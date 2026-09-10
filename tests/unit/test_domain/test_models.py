@@ -7,6 +7,7 @@ from src.domain.exceptions import DomainError
 from src.domain.models import (
     EventType,
     InboxRecord,
+    InboxStatus,
     Money,
     Order,
     OrderStatus,
@@ -209,13 +210,29 @@ class TestOutboxEvent:
 
 class TestInboxRecord:
     def test_create_inbox_record(self):
+        test_payload = {"test_payload": "test_payload"}
+
         record = InboxRecord.create(
-            event_id="event-123",
-            idempotency_key="test-key",
-            event_type=EventType.ORDER_SHIPPED,
+            event_id="event-123", event_type=EventType.ORDER_SHIPPED, payload=test_payload
         )
 
         assert record.event_id == "event-123"
-        assert record.idempotency_key == "test-key"
         assert record.event_type == EventType.ORDER_SHIPPED
+        assert record.payload == test_payload
+        assert record.processed_at is None
+        assert record.created_at is not None
+
+    def test_mark_processed(self):
+        record = InboxRecord.create(
+            event_id="event-123",
+            event_type=EventType.ORDER_SHIPPED,
+            payload={"test": "payload"},
+        )
+
+        assert record.status == InboxStatus.PENDING
+        assert record.processed_at is None
+
+        record.mark_processed()
+
+        assert record.status == InboxStatus.PROCESSED
         assert record.processed_at is not None

@@ -32,7 +32,11 @@ def mock_uow():
     # Inbox repository
     uow.inbox_repo = Mock()
     uow.inbox_repo.save = AsyncMock()
+    uow.inbox_repo.get_pending = AsyncMock(return_value=[])
     uow.inbox_repo.get_by_idempotency_key = AsyncMock(return_value=None)
+    uow.inbox_repo.get_by_event_id = AsyncMock(return_value=None)
+    uow.inbox_repo.exists = AsyncMock(return_value=False)
+    uow.inbox_repo.mark_processed = AsyncMock()
 
     # Commit
     uow.commit = AsyncMock()
@@ -47,7 +51,5 @@ def mock_uow():
 @pytest.fixture
 def mock_uow_factory(mock_uow):
     """Mock UoW Factory."""
-    factory = Mock()
-    factory.return_value = mock_uow
-    factory.__call__ = AsyncMock(return_value=mock_uow)
+    factory = Mock(return_value=mock_uow)
     return factory

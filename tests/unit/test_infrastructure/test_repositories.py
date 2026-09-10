@@ -7,6 +7,7 @@ import pytest
 from src.domain.models import (
     EventType,
     InboxRecord,
+    InboxStatus,
     Order,
     OrderStatus,
     OutboxEvent,
@@ -352,60 +353,155 @@ class TestSQLAlchemyOutboxRepository:
 class TestSQLAlchemyInboxRepository:
     """Tests for SQLAlchemyInboxRepository."""
 
-    async def test_save(self):
+    @pytest.fixture
+    def session(self):
+        session = Mock()
+        session.execute = AsyncMock()
+        session.flush = AsyncMock()
+        return session
+
+    @pytest.fixture
+    def repo(self, session):
+        return SQLAlchemyInboxRepository(session)
+
+    async def test_save_success(self, repo, session):
         # Given
         record = InboxRecord.create(
             event_id="event-123",
-            idempotency_key="test-key",
             event_type=EventType.ORDER_SHIPPED,
+            payload={"order_id": str(uuid4()), "quantity": 1},
         )
-        session = Mock()
-        session.add = Mock()
-        session.flush = AsyncMock()
-        repo = SQLAlchemyInboxRepository(session)
+        session.execute.return_value.rowcount = 1
 
         # When
         result = await repo.save(record)
 
         # Then
-        session.add.assert_called_once()
-        session.flush.assert_called_once()
+        session.execute.assert_awaited_once()
+        session.flush.assert_awaited_once()
         assert result == record
 
-    async def test_get_by_idempotency_key(self):
+    async def test_save_conflict_returns_none(self, repo, session):
         # Given
-        idempotency_key = "test-key"
+        record = InboxRecord.create(
+            event_id="event-123",
+            event_type=EventType.ORDER_SHIPPED,
+            payload={"order_id": str(uuid4())},
+        )
+        # ON CONFLICT DO NOTHING вернул 0 строк — дубликат
+        session.execute.return_value.rowcount = 0
+
+        # When
+        result = await repo.save(record)
+
+        # Then
+        session.execute.assert_awaited_once()
+        session.flush.assert_not_awaited()
+        assert result is None
+
+    async def test_get_by_event_id_found(self, repo, session):
+        # Given
         now = datetime.now(timezone.utc).replace(tzinfo=None)
         model = InboxModel(
             id=uuid4(),
             event_id="event-123",
-            idempotency_key=idempotency_key,
             event_type=EventType.ORDER_SHIPPED.value,
-            processed_at=now,
+            payload={"order_id": str(uuid4())},
+            status=InboxStatus.PENDING.value,
+            processed_at=None,
+            created_at=now,
         )
-        session = Mock()
-        session.execute = AsyncMock()
         session.execute.return_value.scalar_one_or_none = Mock(return_value=model)
-        repo = SQLAlchemyInboxRepository(session)
 
         # When
-        result = await repo.get_by_idempotency_key(idempotency_key)
+        result = await repo.get_by_event_id("event-123")
 
         # Then
-        session.execute.assert_called_once()
-        assert result.idempotency_key == idempotency_key
-        assert result.event_type == EventType.ORDER_SHIPPED.value
+        session.execute.assert_awaited_once()
+        assert result is not None
+        assert result.event_id == "event-123"
+        assert result.event_type == EventType.ORDER_SHIPPED
+        assert result.status == InboxStatus.PENDING
 
-    async def test_get_by_idempotency_key_not_found(self):
+    async def test_get_by_event_id_not_found(self, repo, session):
         # Given
-        idempotency_key = "test-key"
-        session = Mock()
-        session.execute = AsyncMock()
         session.execute.return_value.scalar_one_or_none = Mock(return_value=None)
-        repo = SQLAlchemyInboxRepository(session)
 
         # When
-        result = await repo.get_by_idempotency_key(idempotency_key)
+        result = await repo.get_by_event_id("missing")
 
         # Then
         assert result is None
+
+    async def test_exists_true(self, repo, session):
+        # Given
+        session.execute.return_value.scalar_one_or_none = Mock(return_value=Mock())
+
+        # When
+        result = await repo.exists("event-123")
+
+        # Then
+        assert result is True
+
+    async def test_exists_false(self, repo, session):
+        # Given
+        session.execute.return_value.scalar_one_or_none = Mock(return_value=None)
+
+        # When
+        result = await repo.exists("event-123")
+
+        # Then
+        assert result is False
+
+    async def test_get_pending_returns_domain_records(self, repo, session):
+        # Given
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        models = [
+            InboxModel(
+                id=uuid4(),
+                event_id=f"event-{i}",
+                event_type=EventType.ORDER_SHIPPED.value,
+                payload={"order_id": str(uuid4())},
+                status=InboxStatus.PENDING.value,
+                processed_at=None,
+                created_at=now,
+            )
+            for i in range(2)
+        ]
+        # session.scalars(...) → result.all() → [models]
+        scalars_result = Mock()
+        scalars_result.all = Mock(return_value=models)
+        session.scalars = AsyncMock(return_value=scalars_result)
+
+        # When
+        result = await repo.get_pending(limit=10)
+
+        # Then
+        session.scalars.assert_awaited_once()
+        assert len(result) == 2
+        assert all(isinstance(r, InboxRecord) for r in result)
+        assert result[0].event_id == "event-0"
+        assert result[1].event_id == "event-1"
+
+    async def test_get_pending_empty(self, repo, session):
+        # Given
+        scalars_result = Mock()
+        scalars_result.all = Mock(return_value=[])
+        session.scalars = AsyncMock(return_value=scalars_result)
+
+        # When
+        result = await repo.get_pending(limit=10)
+
+        # Then
+        assert result == []
+
+    async def test_mark_processed(self, repo, session):
+        # Given
+        record_id = uuid4()
+
+        # When
+        await repo.mark_processed(record_id)
+
+        # Then
+        session.execute.assert_awaited_once()
+        session.flush.assert_awaited_once()
