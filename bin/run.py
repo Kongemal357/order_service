@@ -33,7 +33,7 @@ def run_migrations():
 
         alembic_cfg = Config("alembic.ini")
         command.downgrade(alembic_cfg, "ff6bdd83cbeb")
-        command.upgrade(alembic_cfg, "head")
+        command.upgrade(alembic_cfg, "e8170c01cdbc")
         logger.info("Migrations applied successfully")
     except ImportError:
         logger.warning(" Alembic not installed, skipping migrations")
