@@ -3,13 +3,24 @@ from datetime import datetime, timezone
 from typing import List, Optional
 from uuid import UUID
 
-from sqlalchemy import select, update
+from sqlalchemy import cast, select, update
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.application.dto.inbox_dto import InboxWithUserDTO
 from src.application.ports.inbox_repository import InboxRepository
 from src.application.ports.outbox_repository import OutboxRepository
 from src.application.ports.repositories import OrderRepository
-from src.domain.models import InboxRecord, Order, OrderStatus, OutboxEvent, OutboxStatus
+from src.domain.models import (
+    EventType,
+    InboxRecord,
+    InboxStatus,
+    Order,
+    OrderStatus,
+    OutboxEvent,
+    OutboxStatus,
+)
 from src.infrastructure.persistence.models import InboxModel, OrderModel, OutboxModel
 
 logger = logging.getLogger(__name__)
@@ -174,29 +185,92 @@ class SQLAlchemyInboxRepository(InboxRepository):
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def save(self, record: InboxRecord) -> InboxRecord:
-        model = InboxModel(
-            id=record.id,
-            event_id=record.event_id,
-            idempotency_key=record.idempotency_key,
-            event_type=record.event_type,
-            processed_at=record.processed_at,
+    async def save(self, record: InboxRecord) -> InboxRecord | None:
+        """
+        Save inbox record with ON CONFLICT DO NOTHING.
+        """
+        stmt = (
+            insert(InboxModel)
+            .values(
+                id=record.id,
+                event_id=record.event_id,
+                event_type=record.event_type.value,
+                payload=record.payload,
+                status=record.status.value,
+                processed_at=record.processed_at,
+                created_at=record.created_at or datetime.now(timezone.utc).replace(tzinfo=None),
+            )
+            .on_conflict_do_nothing(index_elements=["event_id"])
         )
-        self.session.add(model)
+
+        result = await self.session.execute(stmt)
+
+        if result.rowcount == 0:
+            return None
+
         await self.session.flush()
         return record
 
-    async def get_by_idempotency_key(self, key: str) -> Optional[InboxRecord]:
-        stmt = select(InboxModel).where(InboxModel.idempotency_key == key)
+    async def get_by_event_id(self, event_id: str) -> Optional[InboxRecord]:
+        """Get inbox record by event_id."""
+        stmt = select(InboxModel).where(InboxModel.event_id == event_id)
         result = await self.session.execute(stmt)
         model = result.scalar_one_or_none()
 
         if model:
-            return InboxRecord(
-                id=model.id,
-                event_id=model.event_id,
-                idempotency_key=model.idempotency_key,
-                event_type=model.event_type,
-                processed_at=model.processed_at,
-            )
+            return self._to_domain(model)
         return None
+
+    async def get_pending_with_user(self, limit: int = 100) -> List[InboxWithUserDTO]:
+        """Get pending inbox records with user_id from joined orders."""
+        order_id_text = InboxModel.payload["order_id"].as_string()
+
+        stmt = (
+            select(InboxModel, OrderModel.user_id)
+            .join(OrderModel, OrderModel.id == cast(order_id_text, PG_UUID))
+            .where(InboxModel.status == InboxStatus.PENDING.value)
+            .order_by(InboxModel.created_at)
+            .limit(limit)
+            .with_for_update(of=InboxModel, skip_locked=True)
+        )
+
+        result = await self.session.execute(stmt)
+        rows = result.all()
+
+        return [
+            InboxWithUserDTO.from_model(
+                inbox_model=row[0],
+                user_id=row[1],
+            )
+            for row in rows
+        ]
+
+    async def mark_processed(self, record_id: UUID) -> None:
+        """Mark inbox record as processed."""
+        stmt = (
+            update(InboxModel)
+            .where(InboxModel.id == record_id)
+            .values(
+                status=InboxStatus.PROCESSED.value,
+                processed_at=datetime.now(timezone.utc).replace(tzinfo=None),
+            )
+        )
+        await self.session.execute(stmt)
+        await self.session.flush()
+
+    async def exists(self, event_id: str) -> bool:
+        """Check if event already exists in inbox."""
+        stmt = select(InboxModel).where(InboxModel.event_id == event_id)
+        result = await self.session.execute(stmt)
+        return result.scalar_one_or_none() is not None
+
+    def _to_domain(self, model: InboxModel) -> InboxRecord:
+        return InboxRecord(
+            id=model.id,
+            event_id=model.event_id,
+            event_type=EventType(model.event_type),
+            payload=model.payload,
+            status=InboxStatus(model.status),
+            processed_at=model.processed_at,
+            created_at=model.created_at,
+        )
