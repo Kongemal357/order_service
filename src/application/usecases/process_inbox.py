@@ -37,6 +37,8 @@ class ProcessInboxUseCase:
         logger.info(f"Found {len(events)} pending inbox events")
 
         for event in events:
+            use_case_result = False
+
             async with self.uow_factory() as uow:
                 try:
                     if event.event_type == EventType.ORDER_SHIPPED:
@@ -51,9 +53,6 @@ class ProcessInboxUseCase:
 
                     else:
                         logger.warning(f"Unknown event type: {event.event_type}")
-                        await uow.inbox_repo.mark_processed(event.id)
-                        use_case_result = False
-                        continue
 
                     await uow.inbox_repo.mark_processed(event.id)
 

@@ -25,10 +25,18 @@ class SaveInboxEventUseCase:
             return False
 
         if event_type == EventType.ORDER_SHIPPED:
-            dto = OrderShippedEventDTO.from_dict(data)
+            try:
+                dto = OrderShippedEventDTO.from_dict(data)
+            except (KeyError, ValueError, TypeError) as e:
+                logger.warning(f"Invalid order.shipped payload: {data} - {e}")
+                return False
             event_id = f"{event_type.value}_{dto.shipment_id}"
         elif event_type == EventType.ORDER_CANCELLED:
-            dto = OrderCancelledEventDTO.from_dict(data)
+            try:
+                dto = OrderCancelledEventDTO.from_dict(data)
+            except (KeyError, ValueError, TypeError) as e:
+                logger.warning(f"Invalid order.cancelled payload: {data} - {e}")
+                return False
             event_id = f"{event_type.value}_{dto.order_id}"
         else:
             logger.warning(f"Unhandled event type: {event_type}")
