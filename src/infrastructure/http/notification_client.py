@@ -44,10 +44,39 @@ class NotificationHTTPClient(NotificationClientPort):
 
         except httpx.TimeoutException:
             logger.warning(f"Notification timeout for order {dto.reference_id}")
-            raise NotificationError(f"Notification timeout for order {dto.reference_id}")
+
         except httpx.HTTPStatusError as e:
-            logger.error(f"Notification error: {e.response.status_code} - {e.response.text}")
+            logger.error(
+                "Notification HTTP error\n"
+                "  URL: %s\n"
+                "  Status: %s\n"
+                "  Reference: %s\n"
+                "  Request payload: %s\n"
+                "  Response body: %s\n"
+                "  Response headers: %s",
+                e.request.url,
+                e.response.status_code,
+                dto.reference_id,
+                payload,
+                e.response.text,
+                dict(e.response.headers),
+            )
             raise NotificationError(f"Notification error: {e.response.status_code}")
+
+        except httpx.RequestError as e:
+            logger.error(
+                "Notification request error\n"
+                "  URL: %s\n"
+                "  Reference: %s\n"
+                "  Error type: %s\n"
+                "  Error: %s",
+                e.request.url,
+                dto.reference_id,
+                type(e).__name__,
+                str(e),
+            )
+            raise NotificationError(f"Notification request error: {e}")
+
         except Exception as e:
-            logger.error(f"Unexpected notification error: {e}")
+            logger.exception(f"Unexpected notification error for order {dto.reference_id}")
             raise NotificationError(f"Unexpected notification error: {e}")
