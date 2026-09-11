@@ -1,6 +1,7 @@
+import asyncio
 import logging
 from decimal import Decimal
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from src.application.dto import CreateOrderDTO, OrderResponseDTO
 from src.application.dto.payment_dto import CreatePaymentDTO
@@ -72,10 +73,7 @@ class CreateOrderUseCase:
             logger.info(f"Order saved: {order.id}")
 
         # Send notification
-        await self.notification_service.send_notification(
-            order.id,
-            NotificationType.ORDER_CREATED,
-        )
+        asyncio.create_task(self._send_notification_safe(order.id, NotificationType.ORDER_CREATED))
 
         # Create payment
         try:
@@ -102,9 +100,8 @@ class CreateOrderUseCase:
                     logger.info(f"Order cancelled due to payment failure: {order.id}")
 
             # Send notification
-            await self.notification_service.send_notification(
-                order.id,
-                NotificationType.ORDER_CANCELLED,
+            asyncio.create_task(
+                self._send_notification_safe(order.id, NotificationType.ORDER_CANCELLED)
             )
             raise
 
@@ -117,3 +114,17 @@ class CreateOrderUseCase:
             logger.info(f"Order updated with payment_id: {order.id}")
 
         return OrderResponseDTO.from_domain(order)
+
+    async def _send_notification_safe(
+        self,
+        order_id: UUID,
+        notification_type: NotificationType,
+    ) -> None:
+        """Send notification in background, swallowing errors."""
+        try:
+            await self.notification_service.send_notification(order_id, notification_type)
+        except Exception as e:
+            logger.error(
+                f"Background notification failed: order={order_id}, "
+                f"type={notification_type.value}, error={e}"
+            )

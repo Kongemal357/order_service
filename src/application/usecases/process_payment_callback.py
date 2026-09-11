@@ -1,5 +1,6 @@
+import asyncio
 import logging
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from src.application.dto.event_dto import OrderPaidEventDTO
 from src.application.dto.order_dto import OrderResponseDTO
@@ -97,10 +98,22 @@ class ProcessPaymentCallbackUseCase:
 
             # Send notification
             if check_paid:
-                await self.notification_service.send_notification(
-                    order.id,
-                    NotificationType.ORDER_PAID,
+                asyncio.create_task(
+                    self._send_notification_safe(order.id, NotificationType.ORDER_PAID)
                 )
 
             logger.info(f"Order {order.id} updated to {order.status}")
             return OrderResponseDTO.from_domain(order)
+
+    async def _send_notification_safe(
+        self,
+        order_id: UUID,
+        notification_type: NotificationType,
+    ) -> None:
+        try:
+            await self.notification_service.send_notification(order_id, notification_type)
+        except Exception as e:
+            logger.error(
+                f"Background notification failed: order={order_id}, "
+                f"type={notification_type.value}, error={e}"
+            )

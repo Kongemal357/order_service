@@ -1,4 +1,6 @@
+import asyncio
 import logging
+from uuid import UUID
 
 from src.application.dto.event_dto import OrderCancelledEventDTO, OrderShippedEventDTO
 from src.application.ports.uow import UnitOfWorkFactory
@@ -64,12 +66,30 @@ class ProcessInboxUseCase:
 
             try:
                 if use_case_result:
-                    await self.shipping_use_case.send_notifications(
-                        order_id=event.payload["order_id"],
-                        event_type=event.event_type,
+                    asyncio.create_task(
+                        self._send_notification_safe(
+                            order_id=event.payload["order_id"],
+                            event_type=event.event_type,
+                        )
                     )
             except Exception as e:
                 logger.error(f"Failed to send notification for event {event.id}: {e}")
 
         logger.info(f"Processed {processed_events} inbox events")
         return processed_events
+
+    async def _send_notification_safe(
+        self,
+        order_id: UUID,
+        event_type: EventType,
+    ) -> None:
+        try:
+            await self.shipping_use_case.send_notifications(
+                order_id=order_id,
+                event_type=event_type,
+            )
+        except Exception as e:
+            logger.error(
+                f"Background notification failed: order={order_id}, "
+                f"type={event_type.value}, error={e}"
+            )
