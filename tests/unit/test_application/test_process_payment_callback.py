@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime, timezone
 from decimal import Decimal
 from uuid import uuid4
@@ -63,6 +64,7 @@ class TestProcessPaymentCallbackUseCase:
         )
 
         result = await use_case.execute(payment_callback_dto)
+        await asyncio.sleep(0)
 
         assert result.status == OrderStatus.PAID.value
         mock_uow.order_repo.update.assert_called()

@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime, timezone
 from unittest.mock import AsyncMock, Mock
 from uuid import uuid4
@@ -83,6 +84,7 @@ class TestCreateOrderUseCase:
         )
 
         result = await use_case.execute(create_order_dto)
+        await asyncio.sleep(0)
 
         assert result.user_id == create_order_dto.user_id
         assert result.status == OrderStatus.NEW.value
@@ -194,6 +196,8 @@ class TestCreateOrderUseCase:
 
         with pytest.raises(PaymentError):
             await use_case.execute(create_order_dto)
+
+        await asyncio.sleep(0)
 
         mock_uow.order_repo.update.assert_called()
         mock_notification_service.send_notification.assert_called()

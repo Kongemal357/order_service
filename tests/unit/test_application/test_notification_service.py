@@ -31,19 +31,19 @@ class TestSendNotification:
         [
             (
                 NotificationType.ORDER_CREATED,
-                "Your order has been created and requires payment",
+                "NEW: Your order has been created and requires payment",
             ),
             (
                 NotificationType.ORDER_PAID,
-                "Your order has been successfully paid and ready for shipment",
+                "PAID: Your order has been successfully paid",
             ),
             (
                 NotificationType.ORDER_SHIPPED,
-                "Your order has been sent for delivery",
+                "SHIPPED: Your order has been sent for delivery",
             ),
             (
                 NotificationType.ORDER_CANCELLED,
-                "Your order has been cancelled",
+                "CANCELLED: Your order has been cancelled",
             ),
         ],
     )

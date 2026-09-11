@@ -1,3 +1,4 @@
+import asyncio
 from unittest.mock import AsyncMock, Mock
 from uuid import uuid4
 
@@ -161,6 +162,7 @@ class TestProcessInboxExecute:
         mock_shipping_use_case.process_shipped.return_value = True
 
         await use_case.execute(limit=100)
+        await asyncio.sleep(0)
 
         mock_shipping_use_case.send_notifications.assert_awaited_once_with(
             order_id=order_id,
