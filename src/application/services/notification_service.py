@@ -18,10 +18,10 @@ class NotificationService:
     """
 
     _MESSAGES = {
-        NotificationType.ORDER_CREATED: "Your order has been created and requires payment",
-        NotificationType.ORDER_PAID: "Your order has been successfully paid and ready for shipment",
-        NotificationType.ORDER_SHIPPED: "Your order has been sent for delivery",
-        NotificationType.ORDER_CANCELLED: "Your order has been cancelled",
+        NotificationType.ORDER_CREATED: "NEW: Your order has been created and requires payment",
+        NotificationType.ORDER_PAID: "PAID: Your order has been successfully paid",
+        NotificationType.ORDER_SHIPPED: "SHIPPED: Your order has been sent for delivery",
+        NotificationType.ORDER_CANCELLED: "CANCELLED: Your order has been cancelled",
     }
 
     def __init__(self, client: NotificationClient):
